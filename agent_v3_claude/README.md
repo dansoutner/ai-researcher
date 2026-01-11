@@ -1,14 +1,24 @@
-# Agent v3 Claude - Refactored Architecture
+# Agent v3 Claude
 
-A modular, maintainable implementation of a planner-executor-reviewer agent system using LangGraph.
+A production-ready, modular planner-executor-reviewer agent system built with LangGraph and Claude.
 
 ## Overview
 
-This agent system follows a cyclical workflow:
-1. **Planner**: Creates step-by-step execution plans
-2. **Executor**: Executes each plan step using available tools
-3. **Reviewer**: Evaluates results and decides next actions (continue, retry, replan, finish)
-4. **Loop**: Continues until goal is achieved or max iterations reached
+Agent v3 implements an autonomous workflow with automatic error recovery:
+
+1. **Planner**: Creates step-by-step execution plans based on goals and feedback
+2. **Executor**: Executes plan steps using 26+ tools, returns structured status
+3. **Reviewer**: Evaluates goal progress and determines next actions
+4. **Self-Healing**: Automatically replans on failures without LLM interpretation
+
+### Key Features
+
+- ✅ **Structured Output**: Executor returns typed `{success: bool, output: str}` 
+- ✅ **Automatic Recovery**: Failures trigger immediate replanning
+- ✅ **Context Management**: Intelligent message pruning handles large outputs
+- ✅ **Comprehensive Tooling**: 26 tools across file system, Git, testing, and more
+- ✅ **Type Safety**: Full TypedDict definitions with validation
+- ✅ **Modular Architecture**: Clean separation across 9 specialized modules
 
 ## Architecture
 
@@ -16,35 +26,32 @@ This agent system follows a cyclical workflow:
 
 ```
 agent_v3_claude/
-├── __init__.py          # Package exports and version
-├── agent.py             # Main entry point (run, print_results)
-├── config.py            # Configuration and constants
-├── state.py             # State management and data structures
-├── pruning.py           # Context window management
-├── tools.py             # Tool registry and execution
-├── nodes.py             # Role implementations (planner, executor, reviewer)
+├── agent.py             # Main entry point: run(), print_results()
+├── config.py            # System prompts, constants, configuration
+├── state.py             # AgentState TypedDict, state management
+├── nodes.py             # Role implementations (planner, executor, reviewer, advance)
 ├── routing.py           # Workflow routing logic
-└── graph.py             # LangGraph construction
+├── graph.py             # LangGraph construction
+├── tools.py             # Tool registry and execution (26 tools)
+├── pruning.py           # Context window management
+└── __init__.py          # Package exports
 ```
 
-### Key Design Patterns
+### Design Principles
 
-#### Separation of Concerns
-- **Configuration** (`config.py`): All constants, prompts, and settings in one place
-- **State Management** (`state.py`): Clear state definitions with TypedDict
-- **Business Logic** (`nodes.py`): Role-specific implementations
-- **Infrastructure** (`tools.py`, `pruning.py`): Support utilities
+**Separation of Concerns**
+- Configuration, state, business logic, and infrastructure cleanly separated
+- Each module has a single, well-defined responsibility
 
-#### Context Window Management
-The agent includes sophisticated context window management to handle large tool outputs:
+**Context Window Management**
 - **Tool Output Store**: Out-of-band storage for raw tool outputs
-- **Message Pruning**: Intelligent truncation that keeps recent messages intact
-- **Head/Tail Display**: Shows beginning and end of large outputs with metadata
+- **Message Pruning**: Intelligent truncation preserving recent context
+- **Head/Tail Display**: Shows beginning/end of large outputs with metadata
 
-#### Error Handling
-- JSON parsing with fallbacks in planner and reviewer
-- Tool execution error handling
-- Safe defaults when LLM responses are malformed
+**Error Handling**
+- JSON parsing with graceful fallbacks
+- Tool execution error handling with structured status
+- Safe defaults for malformed LLM responses
 
 ## Usage
 
@@ -129,26 +136,58 @@ The executor has access to these tool categories:
 - `memory_set`, `memory_get`, `memory_list`, `memory_delete`, `memory_append`
 - `store_repo_map`, `store_test_results`, `clear_memory`
 
-## Workflow Details
+## Workflow
 
-### Planner Node
-- Receives the goal and any feedback from previous iterations
-- Generates a JSON-formatted plan with concrete steps
-- Fallback: treats entire response as single step on parse error
+```
+┌─────────┐
+│ Planner │ Creates plan with feedback
+└────┬────┘
+     │
+     ▼
+┌─────────────────────┐
+│   Executor          │
+│ Returns structured: │
+│ {success, output}   │
+└────┬────────────────┘
+     │
+     ├─ success=True ──► Reviewer ──► Advance ──┐
+     │                                           │
+     └─ success=False ─► Planner (auto-retry) ──┘
+                              │
+                         Loop continues
+```
 
-### Executor Node
-- Takes one step from the plan
-- Enters a tool-execution loop:
-  1. Prunes message history to fit context window
-  2. Invokes LLM with current step
-  3. Executes any requested tools
-  4. Feeds results back to LLM
-  5. Repeats until LLM provides final summary (no more tool calls)
+### Node Details
 
-### Reviewer Node
-- Examines executor's results
-- Returns JSON verdict with one of four options:
-  - `continue`: Step succeeded, move to next step
+**Planner**
+- Receives goal and feedback from previous iterations
+- Generates JSON plan with concrete, actionable steps
+- Fallback: Treats entire response as single step on parse error
+
+**Executor**
+- Takes current plan step and enters tool-execution loop
+- Structured output: `{success: bool, output: str}`
+- Automatic failure detection triggers replanning
+- Loop process:
+  1. Prune message history for context window
+  2. Invoke LLM with current step
+  3. Execute requested tools
+  4. Feed results back to LLM
+  5. Repeat until final summary (no more tool calls)
+
+**Reviewer**
+- Examines executor results against original goal
+- Returns JSON verdict:
+  - `continue` - Step succeeded, advance to next
+  - `retry` - Step needs replanning
+  - `replan` - Discard plan, start over
+  - `finish` - Goal achieved
+- Fallback: Defaults to `continue` on parse error
+
+**Advance**
+- Updates iteration counter and step index
+- Handles verdict-based state transitions
+- Resets plan when retry/replan needed
   - `retry`: Step failed, try again without advancing
   - `replan`: Current approach isn't working, create new plan
   - `finish`: Goal is complete
