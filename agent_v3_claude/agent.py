@@ -25,7 +25,6 @@ from langchain_core.messages import (
     AIMessage,
     ToolMessage,
 )
-from langchain_core.tools import tool
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from langgraph.graph import StateGraph, END
@@ -35,41 +34,182 @@ from langgraph.graph import StateGraph, END
 
 
 # =========================
-# Tools (example set)
+# Context pruning / tool-output storage
 # =========================
 
-@tool
-def sh(command: str) -> str:
-    """Run a shell command in the current working directory and return stdout+stderr."""
-    # WARNING: This runs arbitrary shell commands. Lock this down for production.
-    p = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        env=os.environ.copy(),
+@dataclass(frozen=True)
+class PruningConfig:
+    """Controls how aggressively we prune messages before sending them to the LLM.
+
+    This agent is a template, so we use deterministic truncation rather than
+    requiring a separate summarizer LLM.
+    """
+
+    # Keep the last N messages verbatim (typically the most relevant context)
+    keep_last_messages: int = 20
+
+    # If a ToolMessage content exceeds this, store raw output and replace w/ stub
+    tool_max_chars: int = 6000
+
+    # How much of a large tool output to show to the LLM
+    tool_head_chars: int = 1200
+    tool_tail_chars: int = 800
+
+
+class ToolOutputStore:
+    """Out-of-band storage for raw tool outputs keyed by tool_call_id."""
+
+    def __init__(self) -> None:
+        self._store: Dict[str, str] = {}
+
+    def put(self, tool_call_id: str, content: str) -> None:
+        if tool_call_id:
+            # First write wins; later prunes should not overwrite raw content
+            self._store.setdefault(tool_call_id, content)
+
+    def get(self, tool_call_id: str) -> Optional[str]:
+        return self._store.get(tool_call_id)
+
+    def __len__(self) -> int:
+        return len(self._store)
+
+
+def _summarize_tool_output(text: str, *, cfg: PruningConfig, tool_call_id: str) -> str:
+    if len(text) <= cfg.tool_max_chars:
+        return text
+
+    head = text[: cfg.tool_head_chars]
+    tail = text[-cfg.tool_tail_chars :] if cfg.tool_tail_chars > 0 else ""
+
+    lines = text.count("\n") + 1 if text else 0
+    omitted = len(text) - len(head) - len(tail)
+
+    middle = (
+        f"\n... <omitted {omitted} chars, {lines} lines total; "
+        f"stored as tool_call_id={tool_call_id}> ...\n"
     )
-    return p.stdout
+    return head + middle + tail
 
 
-@tool
-def write_file(path: str, content: str) -> str:
-    """Write content to a file path, creating parent dirs if needed."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-    return f"Wrote {len(content)} bytes to {path}"
+def prune_messages_for_llm(
+    messages: List[BaseMessage],
+    *,
+    store: ToolOutputStore,
+    cfg: PruningConfig,
+) -> List[BaseMessage]:
+    """Return a pruned copy of `messages` safe to send to the LLM.
+
+    Strategy:
+    - Keep last N messages unchanged.
+    - For older ToolMessages, store raw content and replace with a truncated stub.
+
+    This avoids context-window explosion when running tools that output thousands
+    of lines (pytest, linters, etc.).
+    """
+
+    if not messages:
+        return []
+
+    n = cfg.keep_last_messages
+    cut = max(0, len(messages) - n) if n >= 0 else 0
+
+    pruned: List[BaseMessage] = []
+
+    for i, m in enumerate(messages):
+        if i >= cut:
+            pruned.append(m)
+            continue
+
+        if isinstance(m, ToolMessage):
+            tool_call_id = getattr(m, "tool_call_id", "")
+            content = getattr(m, "content", "") or ""
+
+            # Store raw tool output, then replace with a stub (deterministic truncation)
+            if tool_call_id and store.get(tool_call_id) is None:
+                store.put(tool_call_id, content)
+
+            stub = _summarize_tool_output(content, cfg=cfg, tool_call_id=tool_call_id)
+            pruned.append(ToolMessage(content=stub, tool_call_id=tool_call_id))
+            continue
+
+        # Non-tool message: keep as-is (these are usually short). If you want to
+        # aggressively prune chat history too, you can extend this.
+        pruned.append(m)
+
+    return pruned
 
 
-@tool
-def read_file(path: str) -> str:
-    """Read a text file."""
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+# =========================
+# Tools (import from ai_researcher_tools)
+# =========================
 
+from ai_researcher_tools import (
+    # File system tools
+    read_file,
+    write_file,
+    list_files,
+    grep,
+    # Git tools
+    git_diff,
+    git_status,
+    git_add,
+    git_commit,
+    git_log,
+    git_branch_list,
+    git_checkout,
+    git_remote_list,
+    git_prepare_pr,
+    # Command tools
+    apply_patch,
+    run_pytest,
+    run_cmd,
+    # Virtual environment tools
+    create_venv,
+    run_in_venv,
+    # Memory tools
+    memory_set,
+    memory_get,
+    memory_list,
+    memory_delete,
+    memory_append,
+    store_repo_map,
+    store_test_results,
+    clear_memory,
+)
 
-TOOLS = [sh, write_file, read_file]
+TOOLS = [
+    # File system
+    read_file,
+    write_file,
+    list_files,
+    grep,
+    # Git
+    git_diff,
+    git_status,
+    git_add,
+    git_commit,
+    git_log,
+    git_branch_list,
+    git_checkout,
+    git_remote_list,
+    git_prepare_pr,
+    # Commands
+    apply_patch,
+    run_pytest,
+    run_cmd,
+    # Virtual environment
+    create_venv,
+    run_in_venv,
+    # Memory
+    memory_set,
+    memory_get,
+    memory_list,
+    memory_delete,
+    memory_append,
+    store_repo_map,
+    store_test_results,
+    clear_memory,
+]
 TOOL_BY_NAME = {t.name: t for t in TOOLS}
 
 
@@ -91,6 +231,10 @@ class AgentState(TypedDict):
     verdict: Optional[Literal["continue", "finish"]]
     max_iters: int
     iters: int
+
+    # Context control
+    tool_output_store: ToolOutputStore
+    pruning_cfg: PruningConfig
 
 
 # =========================
@@ -132,8 +276,16 @@ Return ONLY JSON with this schema:
 EXECUTOR_SYS = """You are the EXECUTOR role in an agent.
 You will execute exactly ONE plan step at a time.
 
+Available tools:
+- File system: read_file, write_file, list_files, grep
+- Git: git_diff, git_status, git_add, git_commit, git_log, git_branch_list, git_checkout, git_remote_list, git_prepare_pr
+- Commands: apply_patch, run_pytest, run_cmd
+- Virtual environments: create_venv, run_in_venv
+- Memory: memory_set, memory_get, memory_list, memory_delete, memory_append, store_repo_map, store_test_results, clear_memory
+
 You can:
-- call tools to inspect the repo, edit files, run tests
+- call tools to inspect the repo, edit files, run tests, manage git, work with virtual environments
+- use memory tools to persist context across steps
 - produce a result summary for this step
 
 When you need a tool, respond with a tool call (function name + JSON args).
@@ -141,16 +293,21 @@ When done with the step, respond with a normal assistant message summarizing wha
 """
 
 REVIEWER_SYS = """You are the REVIEWER role in an agent.
-You decide whether the overall goal is done.
+You decide whether the current step was successful and what to do next.
 
 Return ONLY JSON with this schema:
 {
-  "verdict": "continue" | "finish",
-  "reason": "one short sentence",
-  "fix_suggestion": "if continue, a concrete instruction for planner/executor; else empty string"
+  "verdict": "continue" | "retry" | "replan" | "finish",
+  "reason": "one short sentence explaining why",
+  "fix_suggestion": "if retry/replan, give concrete advice to the executor/planner"
 }
-"""
 
+Verdict Definitions:
+- "continue": The current step was successful. Move to the next step.
+- "retry": The current step failed. Do NOT advance. The executor must fix this step.
+- "replan": The current plan is failing or impossible. Discard the plan and create a new one.
+- "finish": The overall goal (not just the step) is complete.
+"""
 
 # =========================
 # Helper: tool execution loop for a single executor turn
@@ -160,6 +317,9 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
     """
     Executor runs *one* plan step. If the LLM asks for tools, we execute them and feed back ToolMessages.
     We keep looping until the LLM returns a normal AIMessage (no tool calls).
+
+    Important: We prune message history (especially tool outputs) before each LLM call
+    to avoid context-window explosion.
     """
     step = state["plan"][state["step_index"]]
     # Add a system+instruction framing just for the executor
@@ -169,7 +329,12 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
     ] + state["messages"]
 
     while True:
-        ai = llm.invoke(local_messages)
+        safe_messages = prune_messages_for_llm(
+            local_messages,
+            store=state["tool_output_store"],
+            cfg=state["pruning_cfg"],
+        )
+        ai = llm.invoke(safe_messages)
 
         # In LangChain, tool calls are represented differently depending on provider/version.
         # We'll support the common `ai.tool_calls` attribute if present.
@@ -189,15 +354,26 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
                     out = tool_fn.invoke(args)
 
                 local_messages.append(ai)
-                local_messages.append(ToolMessage(content=str(out), tool_call_id=call["id"]))
+
+                tool_call_id = call.get("id", "")
+                out_text = str(out)
+
+                # Store raw output out-of-band immediately, then only give the LLM a stub
+                if tool_call_id:
+                    state["tool_output_store"].put(tool_call_id, out_text)
+
+                stub = _summarize_tool_output(
+                    out_text,
+                    cfg=state["pruning_cfg"],
+                    tool_call_id=tool_call_id,
+                )
+                local_messages.append(ToolMessage(content=stub, tool_call_id=tool_call_id))
             continue
 
         # No tool calls => final executor message for this step
         local_messages.append(ai)
 
-        # Persist only the new messages the agent produced (ai + any tool messages already appended)
-        # For simplicity, we store the entire local_messages tail after the original state messages.
-        # Here we just append the last AI message to the global conversation.
+        # Persist only the new messages the agent produced.
         state["messages"].append(ai)
         state["last_result"] = ai.content if isinstance(ai, AIMessage) else str(ai)
         return state
@@ -256,9 +432,9 @@ def reviewer_node(state: AgentState) -> AgentState:
             content=(
                 f"GOAL: {state['goal']}\n"
                 f"PLAN:\n{plan_txt}\n"
-                f"STEP_INDEX: {state['step_index']}\n"
+                f"CURRENT STEP INDEX: {state['step_index']}\n"
                 f"LAST_RESULT:\n{state.get('last_result')}\n\n"
-                "Decide if goal is finished."
+                "Decide if the step was successful or if we need to retry/replan."
             )
         ),
     ]
@@ -267,41 +443,57 @@ def reviewer_node(state: AgentState) -> AgentState:
     try:
         data = json.loads(ai.content)
         verdict = data["verdict"]
-        if verdict not in ("continue", "finish"):
-            raise ValueError("verdict must be continue|finish")
+        valid_verdicts = {"continue", "finish", "retry", "replan"}
+        if verdict not in valid_verdicts:
+            raise ValueError(f"verdict must be one of {valid_verdicts}")
         reason = data.get("reason", "")
         fix = data.get("fix_suggestion", "")
     except Exception as e:
-        verdict = "continue"
+        # Default safe fallback
+        verdict = "retry"
         reason = f"Reviewer JSON parse failed: {e}"
-        fix = "Proceed with the next plan step or improve the plan."
+        fix = "Check the last output and try again."
 
     state["verdict"] = verdict
     state["messages"].append(ai)
-
-    # Store reviewer summary into last_result for planner hints, etc.
     state["last_result"] = f"{verdict.upper()}: {reason} | {fix}"
     return state
 
 
 def advance_or_stop(state: AgentState) -> AgentState:
     """
-    Update counters and move to next step when appropriate.
+    Update counters and move to next step, retry, or replan.
     """
     state["iters"] += 1
 
-    if state["verdict"] == "finish":
+    verdict = state["verdict"]
+
+    if verdict == "finish":
         return state
 
-    # continue: advance step if possible, else force replan
+    if verdict == "retry":
+        # Do NOT increment step_index.
+        # The routing logic will see step_index < len(plan) and send back to Executor.
+        # The executor will see the reviewer's 'fix_suggestion' in the message history.
+        return state
+
+    if verdict == "replan":
+        # Clear the plan to trigger the planner node logic
+        state["plan"] = []
+        state["step_index"] = 0
+        return state
+
+    # Verdict is "continue" -> Advance to next step
     if state["step_index"] < len(state["plan"]) - 1:
         state["step_index"] += 1
     else:
-        # ran out of steps => replan
+        # We finished the plan but reviewer didn't say "finish"
+        # This implies we need to extend the plan or verify.
+        # Reset plan to force Planner to decide what's next.
         state["plan"] = []
         state["step_index"] = 0
-    return state
 
+    return state
 
 # =========================
 # Routing logic (the "loop")
@@ -322,9 +514,12 @@ def route_after_reviewer(state: AgentState) -> Literal["planner", "executor", EN
     if state["iters"] >= state["max_iters"]:
         return END
 
-    # If we have remaining plan steps, keep executing; otherwise replan.
+    # If we have a valid plan and are within bounds, go to Executor.
+    # In a "retry", step_index wasn't incremented, so we go back to Executor. Correct.
     if state["plan"] and state["step_index"] < len(state["plan"]):
         return "executor"
+
+    # If plan is empty (replan) or we ran out of steps, go to Planner. Correct.
     return "planner"
 
 
@@ -373,6 +568,8 @@ def run(goal: str, max_iters: int = 12) -> AgentState:
         "verdict": None,
         "max_iters": max_iters,
         "iters": 0,
+        "tool_output_store": ToolOutputStore(),
+        "pruning_cfg": PruningConfig(),
     }
     final_state: AgentState = app.invoke(init)
     return final_state
