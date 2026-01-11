@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agent_tools import read_file, write_file
+from ai_researcher.ai_researcher_tools.fs_tools import read_file, write_file
 
 
 def test_write_then_read(tmp_path):

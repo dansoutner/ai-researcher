@@ -3,7 +3,7 @@ from __future__ import annotations
 
 def test_agent_v2_can_invoke_root_tools(tmp_path):
     # Import here so the test fails clearly if the integration is broken.
-    from agent_v2.tooling import ToolCall, build_tool_registry, invoke_tool
+    from ai_researcher.agent_v2.tooling import ToolCall, build_tool_registry, invoke_tool
 
     registry = build_tool_registry()
     assert "write_file" in registry
@@ -26,7 +26,7 @@ def test_agent_v2_can_invoke_root_tools(tmp_path):
 
 
 def test_agent_v2_repo_root_default(tmp_path):
-    from agent_v2.tooling import ToolCall, build_tool_registry, invoke_tool
+    from ai_researcher.agent_v2.tooling import ToolCall, build_tool_registry, invoke_tool
 
     registry = build_tool_registry()
 

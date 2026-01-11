@@ -7,7 +7,7 @@ import pytest
 
 from langchain_core.messages import AIMessage, ToolMessage
 
-from agent_v3_claude.agent import (
+from ai_researcher.agent_v3_claude.agent import (
     PruningConfig,
     ToolOutputStore,
     prune_messages_for_llm,

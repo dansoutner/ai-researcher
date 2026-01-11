@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_tools import create_venv, run_in_venv
+from ai_researcher.ai_researcher_tools.venv_tools import create_venv, run_in_venv
 
 
 @pytest.fixture()

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_tools import (
+from ai_researcher.ai_researcher_tools.git_tools import (
     git_add,
     git_branch_list,
     git_checkout,

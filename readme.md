@@ -24,13 +24,18 @@ A production-ready LangGraph-based agent with a modular planner-executor-reviewe
 
 **Quick Start:**
 ```python
-from agent_v3_claude import run, print_results
+from ai_researcher import run_v3
 
-state = run("Run pytest and fix any failing tests", max_iters=10)
-print_results(state)
+state = run_v3("Run pytest and fix any failing tests", max_iters=10)
+print(f"Final status: {state['status']}")
 ```
 
-📖 [Read the full documentation](agent_v3_claude/README.md)
+Or use the CLI:
+```bash
+ai-researcher-agent-v3 "Your task here"
+```
+
+📖 [Read the full documentation](docs/agent_v3_claude/README.md)
 
 ### Agent v2 (LangGraph + Together)
 **Location:** `agent_v2/`
@@ -38,7 +43,7 @@ print_results(state)
 LangGraph implementation integrated with Together AI's code interpreter:
 ```bash
 # Run as module
-python -m agent_v2.langgraph_agent --query "Your task here"
+python -m ai_researcher.agent_v2.langgraph_agent --query "Your task here"
 
 # Or use installed script
 ai-researcher-agent-v2 --query "Your task here"
@@ -83,14 +88,20 @@ pip install -e .
 
 ```
 ai-researcher/
-├── agent_v1/              # Legacy proof-of-concept
-├── agent_v2/              # LangGraph + Together AI
-├── agent_v3_claude/       # Production-ready (recommended)
-├── ai_researcher_tools/   # Reusable tool implementations
-├── mcp_servers/           # Model Context Protocol servers
-│   └── arxiv-mcp-server/  # arXiv paper search and retrieval
-├── tests/                 # Test suite
-└── experiments/           # Experimental features
+├── ai_researcher/             # Main Python package
+│   ├── agent_v1/             # Legacy proof-of-concept
+│   ├── agent_v2/             # LangGraph + Together AI
+│   ├── agent_v3_claude/      # Production-ready (recommended)
+│   ├── ai_researcher_tools/  # Reusable tool implementations
+│   └── mcp_servers/          # Model Context Protocol servers
+│       └── arxiv-mcp-server/ # arXiv paper search and retrieval
+├── tests/                     # Test suite
+├── examples/                  # Example scripts and demos
+├── docs/                      # Documentation
+├── experiments/               # Experimental features
+├── pyproject.toml            # Project metadata and dependencies
+├── README.md                 # This file
+└── LICENSE                   # MIT License
 ```
 
 ## Tools & Capabilities
