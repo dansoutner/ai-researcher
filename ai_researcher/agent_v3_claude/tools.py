@@ -138,15 +138,26 @@ def execute_tool_call(call: Dict[str, Any]) -> str:
     if isinstance(args, str):
         args = json.loads(args)
 
+    # Debug logging for tool calls
+    print(f"[DEBUG] Calling tool: {name}")
+    print(f"[DEBUG] Tool args: {args}")
+
     tool_fn = TOOL_BY_NAME.get(name)
     if not tool_fn:
-        return f"ERROR: tool '{name}' not found. Available: {list(TOOL_BY_NAME.keys())}"
+        error_msg = f"ERROR: tool '{name}' not found. Available: {list(TOOL_BY_NAME.keys())}"
+        print(f"[DEBUG] Tool error: {error_msg}")
+        return error_msg
 
     try:
         result = tool_fn.invoke(args)
-        return str(result)
+        result_str = str(result)
+        print(f"[DEBUG] Tool result length: {len(result_str)} characters")
+        print(f"[DEBUG] Tool result preview: {result_str[:200]}{'...' if len(result_str) > 200 else ''}")
+        return result_str
     except Exception as e:
-        return f"ERROR executing {name}: {e}"
+        error_msg = f"ERROR executing {name}: {e}"
+        print(f"[DEBUG] Tool exception: {error_msg}")
+        return error_msg
 
 
 def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:

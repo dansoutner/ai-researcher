@@ -10,6 +10,8 @@ until you implement an LLM provider.
 from __future__ import annotations
 
 import argparse
+from dotenv import load_dotenv
+from pathlib import Path
 
 from ai_researcher.agent_v3_claude.agent import run
 
@@ -31,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
+
+    load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+    print(f"Loaded .env file at {Path(__file__).parent / '.env'}")
 
     state = run(goal=args.goal, max_iters=args.max_iters)
 

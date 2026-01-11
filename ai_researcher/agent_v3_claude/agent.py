@@ -65,6 +65,10 @@ def run(
         pruning_cfg=pruning_cfg,
     )
 
+    print(f"[DEBUG] Starting agent run with goal: {goal}")
+    print(f"[DEBUG] Max iterations: {max_iters}")
+    print(f"[DEBUG] Initial state keys: {list(initial_state.keys())}")
+
     final_state: AgentState = app.invoke(initial_state)
     return final_state
 

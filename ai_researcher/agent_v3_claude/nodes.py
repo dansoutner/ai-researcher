@@ -2,9 +2,12 @@
 
 import json
 from typing import Dict, Any
+import os
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 from .config import (
     PLANNER_SYSTEM_PROMPT,
@@ -22,20 +25,31 @@ from .tools import run_executor_turn
 def require_llm() -> BaseChatModel:
     """Provide your LLM implementation here.
 
-    Examples:
-      - OpenAI:
-          from langchain_openai import ChatOpenAI
-          return ChatOpenAI(model="gpt-4o-mini", temperature=0)
-      - Anthropic:
-          from langchain_anthropic import ChatAnthropic
-          return ChatAnthropic(model="claude-3-5-sonnet-latest", temperature=0)
+    Choose provider via env:
+      LLM_PROVIDER=openai|anthropic
+    And set provider keys as usual:
+      OPENAI_API_KEY=...
+      ANTHROPIC_API_KEY=...
 
-    Raises:
-        RuntimeError: If not implemented
+    You can also swap this to any LangChain-compatible chat model.
     """
-    raise RuntimeError(
-        "Please implement require_llm() with your chosen LLM provider."
-    )
+    provider = os.getenv("LLM_PROVIDER").lower()
+    model = os.getenv("LLM_MODEL")  # example default
+    temperature = float(os.getenv("LLM_TEMPERATURE", 0))
+    if not model:
+        raise ValueError("LLM_MODEL is required.")
+    if not provider:
+        raise ValueError("LLM_PROVIDER is required.")
+
+    if provider == "anthropic":
+        ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+        return ChatAnthropic(model=model, temperature=temperature, api_key=ANTHROPIC_API_KEY)
+    if provider == "openai":
+        return ChatOpenAI(model=model, temperature=temperature)
+
+    raise ValueError(f"Unsupported LLM_PROVIDER={provider!r}")
+
+
 
 
 # =========================
@@ -54,7 +68,12 @@ def parse_plan_response(content: str) -> list[str]:
     Raises:
         ValueError: If response format is invalid
     """
-    data = json.loads(content)
+    print(f"[DEBUG] {content}")
+    try:
+        data = json.loads(content)
+    except json.decoder.JSONDecodeError:
+        content = content.replace("json```", "").replace("```", "")
+        data = json.loads(content)
     plan = data["plan"]
 
     if not isinstance(plan, list) or not all(isinstance(s, str) for s in plan):
@@ -106,6 +125,8 @@ def planner_node(state: AgentState) -> AgentState:
     Returns:
         Updated state with new plan
     """
+    print(f"\n[DEBUG] === PLANNER NODE (iteration {state['iters']}) ===")
+
     llm = require_llm()
 
     # Include reviewer feedback or executor failure context if available
@@ -138,6 +159,14 @@ def planner_node(state: AgentState) -> AgentState:
     state["step_index"] = 0
     state["messages"].append(ai_message)
 
+    # Debug logging to show the plan to user
+    print("\n" + "=" * 60)
+    print("[DEBUG] PLAN GENERATED")
+    print("=" * 60)
+    for i, step in enumerate(plan, 1):
+        print(f"{i}. {step}")
+    print("=" * 60 + "\n")
+
     return state
 
 
@@ -155,6 +184,10 @@ def executor_node(state: AgentState) -> AgentState:
     Returns:
         Updated state with execution results
     """
+    current_step = state["plan"][state["step_index"]] if state["plan"] else "No plan"
+    print(f"\n[DEBUG] === EXECUTOR NODE (iteration {state['iters']}, step {state['step_index'] + 1}/{len(state['plan'])}) ===")
+    print(f"[DEBUG] Executing step: {current_step}")
+
     llm = require_llm()
     return run_executor_turn(llm, state)
 
@@ -173,6 +206,8 @@ def reviewer_node(state: AgentState) -> AgentState:
     Returns:
         Updated state with verdict and feedback
     """
+    print(f"\n[DEBUG] === REVIEWER NODE (iteration {state['iters']}) ===")
+
     llm = require_llm()
 
     # Format plan for review
@@ -212,6 +247,11 @@ def reviewer_node(state: AgentState) -> AgentState:
     state["last_result"] = (
         f"{verdict.upper()}: {reason} | {fix_suggestion}"
     )
+
+    print(f"[DEBUG] Reviewer verdict: {verdict.upper()}")
+    print(f"[DEBUG] Reason: {reason}")
+    if fix_suggestion:
+        print(f"[DEBUG] Fix suggestion: {fix_suggestion}")
 
     return state
 
