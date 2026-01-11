@@ -16,6 +16,14 @@ from tools import (
     list_files,
     grep,
     git_diff,
+    git_status,
+    git_add,
+    git_commit,
+    git_log,
+    git_branch_list,
+    git_checkout,
+    git_remote_list,
+    git_prepare_pr,
     apply_patch,
     run_pytest,
     run_cmd,
@@ -45,7 +53,27 @@ OR when the goal is fully achieved:
 Always include this JSON block at the end of every response.
 """
 
-TOOLS = [create_project, read_file, write_file, list_files, grep, git_diff, apply_patch, run_pytest, run_cmd]
+TOOLS = [
+    create_project,
+    read_file,
+    write_file,
+    list_files,
+    grep,
+    # git
+    git_status,
+    git_diff,
+    git_add,
+    git_commit,
+    git_log,
+    git_branch_list,
+    git_checkout,
+    git_remote_list,
+    git_prepare_pr,
+    # patch/test/cmd
+    apply_patch,
+    run_pytest,
+    run_cmd,
+]
 
 # Regex to extract JSON control block from response
 CONTROL_JSON_PATTERN = re.compile(r'```json\s*(\{[^`]*"done"\s*:\s*(?:true|false)[^`]*\})\s*```', re.IGNORECASE | re.DOTALL)

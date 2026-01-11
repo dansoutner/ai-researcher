@@ -437,6 +437,184 @@ def git_diff(repo_root: str, args: str = "") -> str:
     root = Path(repo_root).resolve()
     return _run(f"git diff {args}".strip(), cwd=root)
 
+
+@tool
+def git_status(repo_root: str, porcelain: bool = True, untracked: bool = True) -> str:
+    """Show git status for the repo.
+
+    Args:
+        porcelain: if True, uses --porcelain for machine-readable output.
+        untracked: if False, uses -uno to hide untracked files.
+    """
+    root = Path(repo_root).resolve()
+    args = []
+    if porcelain:
+        args.append("--porcelain")
+    if not untracked:
+        args.append("-uno")
+    return _run("git status " + " ".join(args), cwd=root)
+
+
+@tool
+def git_add(repo_root: str, paths: list[str] | str = ".") -> str:
+    """Stage files (git add).
+
+    Notes:
+    - `paths` may be a single path string or a list of path strings.
+    - Paths are interpreted relative to repo_root.
+    """
+    root = Path(repo_root).resolve()
+    if isinstance(paths, str):
+        path_list = [paths]
+    else:
+        path_list = paths
+
+    # Use -- to avoid interpreting paths starting with '-' as flags.
+    quoted = " ".join(shlex.quote(p) for p in path_list) if path_list else "."
+    cmd = f"git add -- {quoted}".strip()
+    return _run(cmd, cwd=root)
+
+
+@tool
+def git_commit(repo_root: str, message: str, add_all: bool = False) -> str:
+    """Create a git commit.
+
+    Args:
+        message: commit message.
+        add_all: if True, runs `git add -A` before committing.
+
+    Notes:
+    - This does not attempt to set user.name/user.email.
+    - If those aren't configured, git may fail with a helpful error.
+    """
+    root = Path(repo_root).resolve()
+    logs: list[str] = []
+    if add_all:
+        logs.append(_run("git add -A", cwd=root))
+    logs.append(_run(f"git commit -m {shlex.quote(message)}", cwd=root))
+    return "\n".join(logs)
+
+
+@tool
+def git_log(repo_root: str, max_count: int = 20, oneline: bool = True, path: str | None = None) -> str:
+    """Show git log."""
+    root = Path(repo_root).resolve()
+    args: list[str] = [f"-n {int(max_count)}"]
+    if oneline:
+        args.append("--oneline")
+    if path:
+        args.append("--")
+        args.append(shlex.quote(path))
+    return _run("git log " + " ".join(args), cwd=root)
+
+
+@tool
+def git_branch_list(repo_root: str, all: bool = False) -> str:
+    """List branches."""
+    root = Path(repo_root).resolve()
+    return _run("git branch" + (" -a" if all else ""), cwd=root)
+
+
+@tool
+def git_checkout(repo_root: str, branch: str, create: bool = False) -> str:
+    """Checkout a branch.
+
+    Args:
+        branch: branch name.
+        create: if True, uses `git checkout -b <branch>`.
+    """
+    root = Path(repo_root).resolve()
+    flag = "-b " if create else ""
+    return _run(f"git checkout {flag}{shlex.quote(branch)}", cwd=root)
+
+
+@tool
+def git_remote_list(repo_root: str, verbose: bool = True) -> str:
+    """List configured remotes."""
+    root = Path(repo_root).resolve()
+    return _run("git remote -v" if verbose else "git remote", cwd=root)
+
+
+@tool
+def git_prepare_pr(
+    repo_root: str,
+    branch: str,
+    title: str,
+    body: str = "",
+    base: str = "main",
+    ensure_branch: bool = True,
+    require_clean: bool = True,
+) -> str:
+    """Prepare a pull request workflow (local-only).
+
+    This tool does NOT create a remote PR (network/auth are disabled).
+
+    It validates local repo state and prints a ready-to-run command sequence:
+    - create/switch to branch
+    - show status
+    - (optionally) commit instructions
+    - push command
+    - PR creation instructions (web or `gh` if you choose to run it outside sandbox)
+    """
+    root = Path(repo_root).resolve()
+
+    logs: list[str] = []
+
+    # sanity: ensure it's a git repo
+    logs.append(_run("git rev-parse --is-inside-work-tree", cwd=root))
+
+    # optionally create/switch branch
+    if ensure_branch:
+        # best-effort: if checkout -b fails because branch exists, fall back to checkout
+        out = _run(f"git checkout -b {shlex.quote(branch)}", cwd=root)
+        logs.append(out)
+        if "(exit=0)" not in out:
+            logs.append(_run(f"git checkout {shlex.quote(branch)}", cwd=root))
+
+    # status
+    status = _run("git status --porcelain", cwd=root)
+    logs.append(status)
+
+    if require_clean and "(exit=0)" in status:
+        # status output includes cmd+exit line; detect additional lines after that
+        lines = status.splitlines()
+        dirty_lines = [ln for ln in lines[2:] if ln.strip()]
+        if dirty_lines:
+            return (
+                "PR_PREP_FAILED=working_tree_not_clean\n"
+                + "\n".join(logs)
+                + "\n\n"
+                + "Working tree has uncommitted changes. Commit or stash before preparing a PR."
+            )
+
+    # determine upstream/remote (best effort)
+    remotes = _run("git remote", cwd=root)
+    logs.append(remotes)
+
+    # output instructions (no network)
+    push_remote = "origin"
+    cmd_lines = [
+        "# Next commands to run (outside this tool if desired):",
+        f"git checkout {shlex.quote(branch)}",
+        "git status",
+        f"git push -u {push_remote} {shlex.quote(branch)}",
+        "# Then open a PR on your hosting provider (GitHub/GitLab/etc.)",
+        f"# Base: {base}",
+        f"# Title: {title}",
+    ]
+    if body.strip():
+        cmd_lines.append(f"# Body: {body}")
+
+    cmd_lines.extend(
+        [
+            "# If you have GitHub CLI installed and configured, you can run:",
+            f"# gh pr create --base {shlex.quote(base)} --head {shlex.quote(branch)} --title {shlex.quote(title)} --body {shlex.quote(body)}",
+        ]
+    )
+
+    header = "PR_PREPARED=true\n" + f"BRANCH={branch}\n" + f"BASE={base}\n"
+    return header + "\n".join(logs) + "\n\n" + "\n".join(cmd_lines)
+
 @tool
 def apply_patch(repo_root: str, unified_diff: str, check: bool = False) -> str:
     """
@@ -496,7 +674,7 @@ def run_cmd(repo_root: str, cmd: str, timeout_s: int = 60) -> str:
 
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # In-memory storage (persists across tool calls within a session)
 _MEMORY_STORE: Dict[str, Any] = {}

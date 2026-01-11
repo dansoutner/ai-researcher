@@ -1,11 +1,21 @@
 import os
-from dotenv import load_dotenv
-from rich import print
 
-from agent import build_graph
+def main(argv: list[str] | None = None) -> int:
+    # Import optional CLI niceties lazily to avoid breaking imports if extras aren't installed.
+    try:
+        from dotenv import load_dotenv  # type: ignore
+    except Exception:
+        load_dotenv = None
 
-def main():
-    load_dotenv()
+    try:
+        from rich import print as rich_print  # type: ignore
+    except Exception:
+        rich_print = print
+
+    from agent_v1.agent import build_graph
+
+    if load_dotenv:
+        load_dotenv()
 
     goal = os.getenv("GOAL") or input("What should I do?\n> ").strip()
 
@@ -20,12 +30,12 @@ def main():
         for event in app.stream(state, stream_mode="values"):
             msgs = event.get("messages", [])
             if msgs and msgs[-1]["type"] == "assistant":
-                print("\n[bold cyan]Assistant:[/bold cyan]")
-                print(msgs[-1]["content"])
+                rich_print("\n[bold cyan]Assistant:[/bold cyan]" if rich_print is not print else "\nAssistant:")
+                rich_print(msgs[-1]["content"])
 
             if msgs and msgs[-1]["type"] == "tool":
-                print("\n[bold yellow]Tool output:[/bold yellow]")
-                print(msgs[-1]["content"])
+                rich_print("\n[bold yellow]Tool output:[/bold yellow]" if rich_print is not print else "\nTool output:")
+                rich_print(msgs[-1]["content"])
 
             # Update repo_root if it was set during execution
             if event.get("repo_root"):
@@ -37,5 +47,8 @@ def main():
             break
         goal = next_goal
 
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

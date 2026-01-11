@@ -1,0 +1,26 @@
+[project]
+name = "ai-researcher"
+version = "0.1.0"
+description = "AI researcher PoC"
+requires-python = ">=3.10"
+dependencies = [
+  "together>=1.2.0",
+  "langchain>=0.2.0",
+  "langgraph>=0.2.0",
+  "langchain-core>=0.2.0",
+  "pydantic>=2.0",
+]
+
+[project.scripts]
+ai-researcher-agent-v1 = "agent_v1.run:main"
+ai-researcher-agent-v2 = "agent_v2.langgraph_agent:main"
+ai-researcher-agent-v3 = "agent_v3_claude.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
