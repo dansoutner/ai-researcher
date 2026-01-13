@@ -61,6 +61,11 @@ ALLOWED_COMMANDS: Set[str] = {
     "rg",
     "ag",
     "ack",
+    # File and dir creation
+    "mkdir",
+    "touch",
+    "chmod",
+    "chown",
     # Text processing
     "sed",
     "awk",

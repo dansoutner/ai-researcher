@@ -42,6 +42,7 @@ def run(
     goal: str,
     max_iters: int = DEFAULT_MAX_ITERATIONS,
     pruning_cfg: PruningConfig | None = None,
+    repo_root: str | None = None,
 ) -> AgentState:
     """Run the agent system to completion.
 
@@ -49,6 +50,7 @@ def run(
         goal: The objective for the agent to accomplish
         max_iters: Maximum number of iteration cycles before stopping
         pruning_cfg: Optional custom pruning configuration
+        repo_root: Working directory for tools (defaults to current directory)
 
     Returns:
         Final agent state containing results and message history
@@ -63,10 +65,12 @@ def run(
         goal=goal,
         max_iters=max_iters,
         pruning_cfg=pruning_cfg,
+        repo_root=repo_root,
     )
 
     print(f"[DEBUG] Starting agent run with goal: {goal}")
     print(f"[DEBUG] Max iterations: {max_iters}")
+    print(f"[DEBUG] Repo root: {initial_state['repo_root']}")
     print(f"[DEBUG] Initial state keys: {list(initial_state.keys())}")
 
     final_state: AgentState = app.invoke(initial_state)

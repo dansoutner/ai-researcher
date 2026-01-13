@@ -100,6 +100,9 @@ Complete guide to AI Researcher documentation.
 **Learn about available tools**
 → [AGENT_V3_TOOLS_INTEGRATION.md](AGENT_V3_TOOLS_INTEGRATION.md)
 
+**Use MCP tools with any agent**
+→ [MCP_ALL_AGENTS_GUIDE.md](MCP_ALL_AGENTS_GUIDE.md)
+
 **Understand the refactoring**
 → [agent_v3_claude/REFACTORING_SUMMARY.md](agent_v3_claude/REFACTORING_SUMMARY.md)
 

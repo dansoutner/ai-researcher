@@ -1,5 +1,6 @@
 """Agent state management and tool output storage."""
 
+import os
 from typing import Dict, List, Optional, TypedDict
 
 from langchain_core.messages import BaseMessage
@@ -56,6 +57,9 @@ class AgentState(TypedDict):
     plan: List[str]
     step_index: int
 
+    # Working directory for tools
+    repo_root: str
+
     # Executor results
     executor_output: Optional[ExecutorOutput]
 
@@ -76,13 +80,22 @@ def create_initial_state(
     goal: str,
     max_iters: int = 12,
     pruning_cfg: Optional[PruningConfig] = None,
+    repo_root: Optional[str] = None,
 ) -> AgentState:
-    """Create a fresh agent state for a new goal."""
+    """Create a fresh agent state for a new goal.
+
+    Args:
+        goal: The objective for the agent to accomplish
+        max_iters: Maximum number of iteration cycles
+        pruning_cfg: Optional custom pruning configuration
+        repo_root: Working directory for tools (defaults to current directory)
+    """
     return {
         "messages": [],
         "goal": goal,
         "plan": [],
         "step_index": 0,
+        "repo_root": repo_root or os.getcwd(),
         "executor_output": None,
         "last_result": None,
         "verdict": None,

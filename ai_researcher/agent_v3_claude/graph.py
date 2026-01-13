@@ -13,10 +13,9 @@ def build_agent_graph():
     The workflow follows this pattern:
     1. planner: Creates execution plan
     2. executor: Executes one plan step using tools, returns structured status
-    3. If executor fails (success=False), automatically loop back to planner
-    4. reviewer: Evaluates results and decides next action (if executor succeeded)
-    5. advance: Updates counters and determines next step
-    6. Loop back to executor, planner, or end
+    3. reviewer: Evaluates results (detects failures, provides feedback)
+    4. advance: Updates counters and determines next step
+    5. Loop back to executor (continue), planner (retry/replan), or end (finish)
 
     Returns:
         Compiled LangGraph application

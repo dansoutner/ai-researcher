@@ -1,6 +1,7 @@
 import os
+import asyncio
 
-def main(argv: list[str] | None = None) -> int:
+async def async_main(argv: list[str] | None = None) -> int:
     # Import optional CLI niceties lazily to avoid breaking imports if extras aren't installed.
     try:
         from dotenv import load_dotenv  # type: ignore
@@ -12,7 +13,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception:
         rich_print = print
 
-    from agent_v1.agent import build_graph
+    from .agent import build_graph
 
     if load_dotenv:
         load_dotenv()
@@ -22,7 +23,22 @@ def main(argv: list[str] | None = None) -> int:
     # repo_root can be blank; agent can call create_project
     repo_root = os.getenv("REPO_ROOT", "")
 
-    app = build_graph()
+    # MCP server configuration
+    use_mcp_pexlib = os.getenv("USE_MCP_PEXLIB", "true").lower() in ("true", "1", "yes")
+    use_mcp_arxiv = os.getenv("USE_MCP_ARXIV", "false").lower() in ("true", "1", "yes")
+    verbose = os.getenv("VERBOSE", "true").lower() in ("true", "1", "yes")
+
+    # Build graph with MCP tools
+    rich_print(f"\n[bold green]Building agent with MCP tools...[/bold green]" if rich_print is not print else "\nBuilding agent with MCP tools...")
+    if verbose:
+        rich_print(f"  - Pexlib MCP: {use_mcp_pexlib}")
+        rich_print(f"  - Arxiv MCP: {use_mcp_arxiv}")
+
+    app = await build_graph(
+        include_mcp_pexlib=use_mcp_pexlib,
+        include_mcp_arxiv=use_mcp_arxiv,
+        verbose=verbose
+    )
 
     while True:
         state = {"goal": goal, "repo_root": repo_root, "messages": [], "done": False}
@@ -48,6 +64,11 @@ def main(argv: list[str] | None = None) -> int:
         goal = next_goal
 
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Synchronous wrapper for async_main."""
+    return asyncio.run(async_main(argv))
 
 
 if __name__ == "__main__":

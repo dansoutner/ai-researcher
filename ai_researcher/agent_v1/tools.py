@@ -25,6 +25,8 @@ ALLOWED_COMMANDS: Set[str] = {
     "cat", "head", "tail", "less", "more", "wc", "diff",
     "ls", "find", "tree", "file", "stat",
     "grep", "egrep", "fgrep", "rg", "ag", "ack",
+    # creating dirs and files
+    "mkdir", "touch", "chmod", "chown",
     # Text processing
     "sed", "awk", "cut", "sort", "uniq", "tr", "jq", "yq",
     # Archive (read)

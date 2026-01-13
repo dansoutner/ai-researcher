@@ -19,26 +19,18 @@ def route_after_planner(state: AgentState) -> Literal["executor", END]:
     return "executor" if state["plan"] else END
 
 
-def route_after_executor(state: AgentState) -> Literal["reviewer", "planner"]:
-    """Route from executor to reviewer or directly to planner on failure.
+def route_after_executor(state: AgentState) -> Literal["reviewer"]:
+    """Route from executor to reviewer.
 
-    If the executor reports failure (success=False), automatically trigger
-    a replan without requiring the reviewer to intervene.
+    The reviewer will check if the executor succeeded or failed and
+    decide the appropriate next action.
 
     Args:
         state: Current agent state
 
     Returns:
-        "planner" if executor failed, "reviewer" otherwise
+        Always "reviewer"
     """
-    executor_output = state.get("executor_output")
-
-    if executor_output and not executor_output["success"]:
-        # Executor failed - automatically trigger replan
-        # Clear the plan to force replanning with the failure context
-        state["plan"] = []
-        state["step_index"] = 0
-        return "planner"
 
     return "reviewer"
 

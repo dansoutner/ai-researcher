@@ -68,11 +68,24 @@ def parse_plan_response(content: str) -> list[str]:
     Raises:
         ValueError: If response format is invalid
     """
-    print(f"[DEBUG] {content}")
+    # Handle non-string content (e.g., empty list from LLM with only tool calls)
+    if not isinstance(content, str):
+        if isinstance(content, list):
+            # If it's a list, convert to string or raise if empty
+            if not content:
+                raise ValueError("Empty content list - planner provided no text response")
+            content = str(content)
+        else:
+            content = str(content)
+
+    # Handle empty or whitespace-only content
+    if not content or not content.strip():
+        raise ValueError("Empty content - planner provided no response")
+
     try:
         data = json.loads(content)
     except json.decoder.JSONDecodeError:
-        content = content.replace("json```", "").replace("```", "")
+        content = content.replace("```json", "").replace("```", "")
         data = json.loads(content)
     plan = data["plan"]
 
@@ -86,7 +99,7 @@ def parse_reviewer_response(content: str) -> Dict[str, Any]:
     """Parse reviewer response JSON to extract verdict.
 
     Args:
-        content: LLM response content (expected JSON)
+        content: LLM response content (expected JSON, may have surrounding text)
 
     Returns:
         Dict with 'verdict', 'reason', and 'fix_suggestion' keys
@@ -94,10 +107,49 @@ def parse_reviewer_response(content: str) -> Dict[str, Any]:
     Raises:
         ValueError: If response format is invalid
     """
-    data = json.loads(content)
-    verdict = data["verdict"]
+    # Handle non-string content (e.g., empty list from LLM with only tool calls)
+    if not isinstance(content, str):
+        if isinstance(content, list):
+            # If it's a list, convert to string or raise if empty
+            if not content:
+                raise ValueError("Empty content list - reviewer provided no text response")
+            content = str(content)
+        else:
+            content = str(content)
 
-    if verdict not in VALID_VERDICTS:
+    # Handle empty or whitespace-only content
+    if not content or not content.strip():
+        raise ValueError("Empty content - reviewer provided no response")
+
+    # Try to parse as direct JSON first
+    print(f"[DEBUG] Trying to parse reviewer response as JSON: {content[:500]}")
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        # If that fails, try to extract JSON from surrounding text
+        # Look for JSON object patterns
+        import re
+
+        # Find all potential JSON objects in the content
+        json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        matches = re.findall(json_pattern, content, re.DOTALL)
+
+        data = None
+        for match in matches:
+            try:
+                parsed = json.loads(match)
+                # Check if this looks like our reviewer response format
+                if isinstance(parsed, dict) and "verdict" in parsed:
+                    data = parsed
+                    break
+            except json.JSONDecodeError:
+                continue
+
+        if data is None:
+            raise ValueError(f"Could not find valid JSON in response. Content: {content[:500]}")
+
+    verdict = data.get("verdict")
+    if not verdict or verdict not in VALID_VERDICTS:
         raise ValueError(f"Verdict must be one of {VALID_VERDICTS}")
 
     return {
@@ -156,7 +208,7 @@ def planner_node(state: AgentState) -> AgentState:
         ]
 
     state["plan"] = plan
-    state["step_index"] = 0
+    state["step_index"] = 0  # Always reset to start of new plan
     state["messages"].append(ai_message)
 
     # Debug logging to show the plan to user
@@ -207,6 +259,15 @@ def reviewer_node(state: AgentState) -> AgentState:
         Updated state with verdict and feedback
     """
     print(f"\n[DEBUG] === REVIEWER NODE (iteration {state['iters']}) ===")
+
+    # Check if executor failed - if so, automatically set retry verdict
+    executor_output = state.get("executor_output")
+    print(f"[DEBUG] Executor output: {executor_output}")
+    if executor_output and not executor_output["success"]:
+        print(f"[DEBUG] Executor failed, automatically setting verdict to 'retry'")
+        state["verdict"] = "retry"
+        state["last_result"] = f"RETRY: Executor failed - {executor_output['output']}"
+        return state
 
     llm = require_llm()
 
@@ -292,12 +353,14 @@ def advance_node(state: AgentState) -> AgentState:
         return state
 
     # Verdict is "continue" - advance to next step
-    if state["step_index"] < len(state["plan"]) - 1:
+    if state["plan"] and state["step_index"] < len(state["plan"]) - 1:
         state["step_index"] += 1
+    elif state["plan"] and state["step_index"] == len(state["plan"]) - 1:
+        # Plan complete with "continue" verdict - treat as goal completion
+        state["verdict"] = "finish"
     else:
-        # Plan complete but not marked "finish" - replan to verify/extend
-        state["plan"] = []
-        state["step_index"] = 0
+        # No plan or invalid state - will trigger replanning via routing
+        pass
 
     return state
 

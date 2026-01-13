@@ -31,13 +31,20 @@ def main(argv: list[str] | None = None) -> int:
         default=10,
         help="Maximum planner/executor/reviewer iterations",
     )
+    parser.add_argument(
+        "--repo-root",
+        "-r",
+        type=str,
+        default=None,
+        help="Working directory for the agent (defaults to current directory)",
+    )
 
     args = parser.parse_args(argv)
 
     load_dotenv(dotenv_path=Path(__file__).parent / ".env")
     print(f"Loaded .env file at {Path(__file__).parent / '.env'}")
 
-    state = run(goal=args.goal, max_iters=args.max_iters)
+    state = run(goal=args.goal, max_iters=args.max_iters, repo_root=args.repo_root)
 
     # Keep output simple and CLI-friendly.
     print(state.get("last_result") or "")

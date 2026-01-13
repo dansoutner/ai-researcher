@@ -8,7 +8,19 @@ re-exports these tools.
 """
 
 from .venv_tools import create_venv, run_in_venv
-from .fs_tools import read_file, write_file, edit_file, list_files, grep
+from .fs_tools import (
+    read_file,
+    write_file,
+    edit_file,
+    list_files,
+    grep,
+    create_dir,
+    list_dir,
+    remove_dir,
+    dir_exists,
+    move_path,
+    copy_path,
+)
 from .git_tools import (
     git_diff,
     git_status,
@@ -42,6 +54,12 @@ __all__ = [
     "edit_file",
     "list_files",
     "grep",
+    "create_dir",
+    "list_dir",
+    "remove_dir",
+    "dir_exists",
+    "move_path",
+    "copy_path",
     # git
     "git_diff",
     "git_status",

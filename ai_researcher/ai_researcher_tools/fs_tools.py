@@ -25,6 +25,198 @@ def write_file(repo_root: str, path: str, content: str) -> str:
 
 
 @tool
+def create_dir(repo_root: str, path: str) -> str:
+    """Create a directory (and all parent directories) within `repo_root`.
+
+    Args:
+        repo_root: The root directory
+        path: Relative path to the directory to create
+
+    Returns:
+        A success message or error if the operation fails
+    """
+    p = safe_path(repo_root, path)
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        return f"Created directory '{path}'"
+    except Exception as e:
+        return f"Error creating directory '{path}': {str(e)}"
+
+
+@tool
+def list_dir(repo_root: str, path: str = ".") -> str:
+    """List the contents of a directory within `repo_root` (non-recursive).
+
+    Shows files and subdirectories with type indicators (/ for dirs, * for executables).
+
+    Args:
+        repo_root: The root directory
+        path: Relative path to the directory to list (default: current directory)
+
+    Returns:
+        A formatted listing of directory contents
+    """
+    p = safe_path(repo_root, path)
+
+    if not p.exists():
+        return f"Error: Directory '{path}' does not exist"
+
+    if not p.is_dir():
+        return f"Error: '{path}' is not a directory"
+
+    try:
+        entries = sorted(p.iterdir())
+        if not entries:
+            return "(empty directory)"
+
+        lines = []
+        for entry in entries:
+            rel_path = entry.name
+            if entry.is_dir():
+                lines.append(f"{rel_path}/")
+            elif entry.is_file():
+                # Check if file is executable
+                if entry.stat().st_mode & 0o111:
+                    lines.append(f"{rel_path}*")
+                else:
+                    lines.append(rel_path)
+            else:
+                lines.append(f"{rel_path} (special)")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error listing directory '{path}': {str(e)}"
+
+
+@tool
+def remove_dir(repo_root: str, path: str, recursive: bool = False) -> str:
+    """Remove a directory within `repo_root`.
+
+    Args:
+        repo_root: The root directory
+        path: Relative path to the directory to remove
+        recursive: If True, remove directory and all contents; if False, only remove if empty
+
+    Returns:
+        A success message or error if the operation fails
+    """
+    p = safe_path(repo_root, path)
+
+    if not p.exists():
+        return f"Error: Directory '{path}' does not exist"
+
+    if not p.is_dir():
+        return f"Error: '{path}' is not a directory"
+
+    try:
+        if recursive:
+            import shutil
+            shutil.rmtree(p)
+            return f"Removed directory '{path}' and all contents recursively"
+        else:
+            p.rmdir()
+            return f"Removed empty directory '{path}'"
+    except OSError as e:
+        if not recursive and any(p.iterdir()):
+            return f"Error: Directory '{path}' is not empty. Use recursive=True to remove with contents."
+        return f"Error removing directory '{path}': {str(e)}"
+    except Exception as e:
+        return f"Error removing directory '{path}': {str(e)}"
+
+
+@tool
+def dir_exists(repo_root: str, path: str) -> str:
+    """Check if a directory exists within `repo_root`.
+
+    Args:
+        repo_root: The root directory
+        path: Relative path to check
+
+    Returns:
+        A message indicating whether the path exists and if it's a directory
+    """
+    p = safe_path(repo_root, path)
+
+    if not p.exists():
+        return f"'{path}' does not exist"
+    elif p.is_dir():
+        return f"'{path}' exists and is a directory"
+    elif p.is_file():
+        return f"'{path}' exists but is a file, not a directory"
+    else:
+        return f"'{path}' exists but is neither a file nor a directory"
+
+
+@tool
+def move_path(repo_root: str, src_path: str, dst_path: str) -> str:
+    """Move or rename a file or directory within `repo_root`.
+
+    Args:
+        repo_root: The root directory
+        src_path: Relative path to the source file or directory
+        dst_path: Relative path to the destination
+
+    Returns:
+        A success message or error if the operation fails
+    """
+    src = safe_path(repo_root, src_path)
+    dst = safe_path(repo_root, dst_path)
+
+    if not src.exists():
+        return f"Error: Source '{src_path}' does not exist"
+
+    if dst.exists():
+        return f"Error: Destination '{dst_path}' already exists"
+
+    try:
+        # Ensure destination parent directory exists
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        src.rename(dst)
+
+        item_type = "directory" if src.is_dir() else "file"
+        return f"Moved {item_type} from '{src_path}' to '{dst_path}'"
+    except Exception as e:
+        return f"Error moving '{src_path}' to '{dst_path}': {str(e)}"
+
+
+@tool
+def copy_path(repo_root: str, src_path: str, dst_path: str) -> str:
+    """Copy a file or directory within `repo_root`.
+
+    Args:
+        repo_root: The root directory
+        src_path: Relative path to the source file or directory
+        dst_path: Relative path to the destination
+
+    Returns:
+        A success message or error if the operation fails
+    """
+    import shutil
+
+    src = safe_path(repo_root, src_path)
+    dst = safe_path(repo_root, dst_path)
+
+    if not src.exists():
+        return f"Error: Source '{src_path}' does not exist"
+
+    if dst.exists():
+        return f"Error: Destination '{dst_path}' already exists"
+
+    try:
+        # Ensure destination parent directory exists
+        dst.parent.mkdir(parents=True, exist_ok=True)
+
+        if src.is_dir():
+            shutil.copytree(src, dst)
+            return f"Copied directory from '{src_path}' to '{dst_path}'"
+        else:
+            shutil.copy2(src, dst)
+            return f"Copied file from '{src_path}' to '{dst_path}'"
+    except Exception as e:
+        return f"Error copying '{src_path}' to '{dst_path}': {str(e)}"
+
+
+@tool
 def edit_file(repo_root: str, path: str, old_string: str, new_string: str) -> str:
     """Replace occurrences of old_string with new_string in a file within `repo_root`.
 
