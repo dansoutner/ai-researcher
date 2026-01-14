@@ -20,7 +20,7 @@ For implementation details, see the individual modules:
 
 from __future__ import annotations
 
-from .config import DEFAULT_MAX_ITERATIONS, PruningConfig
+from .config import DEFAULT_MAX_ITERATIONS, PruningConfig, GRAPH_RECURSION_LIMIT
 from .graph import build_agent_graph
 from .state import AgentState, ExecutorOutput, create_initial_state
 
@@ -73,7 +73,7 @@ def run(
     print(f"[DEBUG] Repo root: {initial_state['repo_root']}")
     print(f"[DEBUG] Initial state keys: {list(initial_state.keys())}")
 
-    final_state: AgentState = app.invoke(initial_state)
+    final_state: AgentState = app.invoke(initial_state, {"recursion_limit": GRAPH_RECURSION_LIMIT})
     return final_state
 
 

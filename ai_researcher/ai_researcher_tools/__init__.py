@@ -32,7 +32,7 @@ from .git_tools import (
     git_remote_list,
     git_prepare_pr,
 )
-from .cmd_tools import apply_patch, run_pytest, run_cmd
+from .cmd_tools import apply_patch, run_pytest, run_cmd, run_terminal_command, get_errors
 from .memory_tools import (
     memory_set,
     memory_get,
@@ -42,6 +42,15 @@ from .memory_tools import (
     store_repo_map,
     store_test_results,
     clear_memory,
+)
+from .dataset_tools import (
+    search_datasets_duckduckgo,
+    search_datasets_google,
+    download_file,
+    download_file_python,
+    unzip_file,
+    list_kaggle_datasets,
+    download_kaggle_dataset,
 )
 
 __all__ = [
@@ -74,6 +83,8 @@ __all__ = [
     "apply_patch",
     "run_pytest",
     "run_cmd",
+    "run_terminal_command",
+    "get_errors",
     # memory
     "memory_set",
     "memory_get",
@@ -83,5 +94,13 @@ __all__ = [
     "store_repo_map",
     "store_test_results",
     "clear_memory",
+    # dataset
+    "search_datasets_duckduckgo",
+    "search_datasets_google",
+    "download_file",
+    "download_file_python",
+    "unzip_file",
+    "list_kaggle_datasets",
+    "download_kaggle_dataset",
 ]
 

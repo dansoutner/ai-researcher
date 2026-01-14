@@ -63,7 +63,7 @@ def main(...):  # New synchronous wrapper
 - create_project, read_file, write_file, list_files, grep
 - git_status, git_diff, git_add, git_commit, git_log
 - git_branch_list, git_checkout, git_remote_list, git_prepare_pr
-- apply_patch, run_pytest, run_cmd
+- apply_patch, run_pytest, run_cmd, run_terminal_command, get_errors
 
 ### MCP (2 async tools when enabled)
 - generate_fingerprint

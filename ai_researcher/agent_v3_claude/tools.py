@@ -39,6 +39,14 @@ from ai_researcher.ai_researcher_tools import (
     store_repo_map,
     store_test_results,
     clear_memory,
+    # Dataset tools
+    search_datasets_duckduckgo,
+    search_datasets_google,
+    download_file,
+    download_file_python,
+    unzip_file,
+    list_kaggle_datasets,
+    download_kaggle_dataset,
 )
 
 from .config import EXECUTOR_SYSTEM_PROMPT
@@ -83,6 +91,14 @@ TOOLS = [
     store_repo_map,
     store_test_results,
     clear_memory,
+    # Dataset
+    search_datasets_duckduckgo,
+    search_datasets_google,
+    download_file,
+    download_file_python,
+    unzip_file,
+    list_kaggle_datasets,
+    download_kaggle_dataset,
 ]
 
 TOOL_BY_NAME = {tool.name: tool for tool in TOOLS}
@@ -227,7 +243,11 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
     local_messages: List[BaseMessage] = [
         SystemMessage(content=EXECUTOR_SYSTEM_PROMPT),
         HumanMessage(
-            content=f"GOAL: {state['goal']}\nCURRENT STEP: {current_step}"
+            content=f"GOAL: {state['goal']}\n"
+                    f"WORKING DIRECTORY: {state['repo_root']}\n"
+                    f"CURRENT STEP: {current_step}\n\n"
+                    f"REMINDER: Use memory_get('working_directory') to retrieve the working directory if needed. "
+                    f"Never hallucinate paths like /tmp/xxx."
         ),
     ] + state["messages"]
 

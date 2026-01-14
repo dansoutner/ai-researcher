@@ -127,7 +127,7 @@ The executor has access to these tool categories:
 - `git_branch_list`, `git_checkout`, `git_remote_list`, `git_prepare_pr`
 
 ### Commands
-- `apply_patch`, `run_pytest`, `run_cmd`
+- `apply_patch`, `run_pytest`, `run_cmd`, `run_terminal_command`, `get_errors`
 
 ### Virtual Environments
 - `create_venv`, `run_in_venv`

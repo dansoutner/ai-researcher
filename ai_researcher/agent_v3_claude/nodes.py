@@ -179,6 +179,14 @@ def planner_node(state: AgentState) -> AgentState:
     """
     print(f"\n[DEBUG] === PLANNER NODE (iteration {state['iters']}) ===")
 
+    # CRITICAL: On first iteration, save working directory to memory
+    # This ensures the executor can always recall it, preventing hallucinated paths
+    if state['iters'] == 0:
+        from ai_researcher.ai_researcher_tools import memory_set
+        repo_root = state['repo_root']
+        print(f"[DEBUG] First iteration - saving working directory to memory: {repo_root}")
+        memory_set.invoke({"key": "working_directory", "value": repo_root})
+
     llm = require_llm()
 
     # Include reviewer feedback or executor failure context if available
@@ -239,6 +247,20 @@ def executor_node(state: AgentState) -> AgentState:
     current_step = state["plan"][state["step_index"]] if state["plan"] else "No plan"
     print(f"\n[DEBUG] === EXECUTOR NODE (iteration {state['iters']}, step {state['step_index'] + 1}/{len(state['plan'])}) ===")
     print(f"[DEBUG] Executing step: {current_step}")
+
+    # CRITICAL: Retrieve working directory from memory to prevent hallucinated paths
+    from ai_researcher.ai_researcher_tools import memory_get
+    try:
+        saved_workdir = memory_get.invoke({"key": "working_directory"})
+        if saved_workdir and saved_workdir != "Key 'working_directory' not found in memory.":
+            print(f"[DEBUG] Retrieved working directory from memory: {saved_workdir}")
+            # Update state with retrieved working directory to ensure consistency
+            state["repo_root"] = saved_workdir
+        else:
+            print(f"[DEBUG] No working directory in memory, using state value: {state['repo_root']}")
+    except Exception as e:
+        print(f"[DEBUG] Failed to retrieve working directory from memory: {e}")
+        print(f"[DEBUG] Using state value: {state['repo_root']}")
 
     llm = require_llm()
     return run_executor_turn(llm, state)

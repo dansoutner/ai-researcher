@@ -66,6 +66,7 @@ ALLOWED_COMMANDS: Set[str] = {
     "touch",
     "chmod",
     "chown",
+    "cd",
     # Text processing
     "sed",
     "awk",
@@ -193,13 +194,22 @@ def _extract_base_command(cmd: str) -> str:
 def validate_command(cmd: str, repo_root: Path) -> None:
     for pattern in BLOCKED_PATTERNS:
         if pattern.search(cmd):
-            raise CommandNotAllowedError(f"Command blocked by security pattern: {pattern.pattern!r}")
+            print(f"\n⚠️  WARNING: Command matches security pattern: {pattern.pattern!r}")
+            print(f"Command: {cmd}")
+            response = input("Do you want to allow this command? (yes/no): ").strip().lower()
+            if response not in ("yes", "y"):
+                raise CommandNotAllowedError(f"Command blocked by user: security pattern {pattern.pattern!r}")
 
     base_cmd = _extract_base_command(cmd)
     if base_cmd not in ALLOWED_COMMANDS:
-        raise CommandNotAllowedError(
-            f"Command '{base_cmd}' is not in the allowlist. Allowed: {sorted(ALLOWED_COMMANDS)}"
-        )
+        print(f"\n⚠️  WARNING: Command '{base_cmd}' is not in the allowlist.")
+        print(f"Command: {cmd}")
+        print(f"Allowed commands: {sorted(ALLOWED_COMMANDS)}")
+        response = input("Do you want to allow this command? (yes/no): ").strip().lower()
+        if response not in ("yes", "y"):
+            raise CommandNotAllowedError(
+                f"Command '{base_cmd}' blocked by user. Not in allowlist."
+            )
 
     repo_str = str(repo_root.resolve())
     try:
@@ -219,9 +229,10 @@ def validate_command(cmd: str, repo_root: Path) -> None:
         pass
 
 
-def build_sandbox_env(repo_root: Path) -> dict:
+def build_sandbox_env(repo_root: Path, allow_network: bool = False) -> dict:
     env = os.environ.copy()
-    env.update(SANDBOX_ENV_OVERRIDES)
+    if not allow_network:
+        env.update(SANDBOX_ENV_OVERRIDES)
 
     safe_paths = ["/usr/local/bin", "/usr/bin", "/bin", "/usr/local/sbin", "/usr/sbin", "/sbin"]
     home = os.path.expanduser("~")
@@ -245,13 +256,13 @@ def build_sandbox_env(repo_root: Path) -> dict:
     return env
 
 
-def run_sandboxed(cmd: str, cwd: Path, timeout_s: int = DEFAULT_TIMEOUT_S, validate: bool = True) -> str:
+def run_sandboxed(cmd: str, cwd: Path, timeout_s: int = DEFAULT_TIMEOUT_S, validate: bool = True, allow_network: bool = False) -> str:
     timeout_s = min(timeout_s, MAX_TIMEOUT_S)
 
     if validate:
         validate_command(cmd, cwd)
 
-    env = build_sandbox_env(cwd)
+    env = build_sandbox_env(cwd, allow_network=allow_network)
 
     try:
         proc = subprocess.run(
