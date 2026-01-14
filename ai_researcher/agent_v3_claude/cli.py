@@ -14,6 +14,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from ai_researcher.agent_v3_claude.agent import run
+from ai_researcher.agent_v3_claude.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,12 +45,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     load_dotenv(dotenv_path=Path(__file__).parent / ".env")
-    print(f"Loaded .env file at {Path(__file__).parent / '.env'}")
+    logger.debug(f"Loaded .env file at {Path(__file__).parent / '.env'}")
 
     state = run(goal=args.goal, max_iters=args.max_iters, repo_root=args.repo_root)
 
     # Keep output simple and CLI-friendly.
-    print(state.get("last_result") or "")
+    logger.user(state.get("last_result") or "")
     return 0
 
 

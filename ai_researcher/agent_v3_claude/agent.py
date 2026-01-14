@@ -84,33 +84,27 @@ def print_results(state: AgentState, num_messages: int = 6) -> None:
         state: Final agent state
         num_messages: Number of recent messages to display
     """
-    print("\n" + "=" * 60)
-    print("AGENT EXECUTION COMPLETE")
-    print("=" * 60)
+    logger.user(format_section_header("AGENT EXECUTION COMPLETE"))
 
-    print(f"\nGoal: {state['goal']}")
-    print(f"Iterations: {state['iters']}/{state['max_iters']}")
-    print(f"Verdict: {state.get('verdict', 'N/A')}")
+    logger.user(f"\nGoal: {state['goal']}")
+    logger.user(f"Iterations: {state['iters']}/{state['max_iters']}")
+    logger.user(f"Verdict: {state.get('verdict', 'N/A')}")
 
     executor_output = state.get("executor_output")
     if executor_output:
         status = "✓ SUCCESS" if executor_output["success"] else "✗ FAILED"
-        print(f"Executor Status: {status}")
+        logger.user(f"Executor Status: {status}")
 
-    print("\n" + "-" * 60)
-    print("FINAL REVIEW")
-    print("-" * 60)
-    print(state.get("last_result", "No result"))
+    logger.user(format_subsection_header("FINAL REVIEW"))
+    logger.user(state.get("last_result", "No result"))
 
-    print("\n" + "-" * 60)
-    print(f"MESSAGE TRACE (last {num_messages})")
-    print("-" * 60)
+    logger.user(format_subsection_header(f"MESSAGE TRACE (last {num_messages})"))
 
     for msg in state["messages"][-num_messages:]:
         role = msg.__class__.__name__
         content = getattr(msg, "content", "")
-        print(f"\n[{role}]")
-        print(content[:500] + ("..." if len(content) > 500 else ""))
+        logger.debug(f"\n[{role}]")
+        logger.debug(content[:500] + ("..." if len(content) > 500 else ""))
 
 
 if __name__ == "__main__":

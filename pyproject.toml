@@ -41,8 +41,6 @@ datasets = [
 ]
 
 [project.scripts]
-ai-researcher-agent-v1 = "ai_researcher.agent_v1.run:main"
-ai-researcher-agent-v2 = "ai_researcher.agent_v2.langgraph_agent:main"
 ai-researcher-agent-v3 = "ai_researcher.agent_v3_claude.cli:main"
 
 [build-system]

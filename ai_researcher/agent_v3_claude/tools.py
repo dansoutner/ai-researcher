@@ -13,6 +13,13 @@ from ai_researcher.ai_researcher_tools import (
     edit_file,
     list_files,
     grep,
+    grep_search,
+    create_dir,
+    list_dir,
+    remove_dir,
+    dir_exists,
+    move_path,
+    copy_path,
     # Git tools
     git_diff,
     git_status,
@@ -27,6 +34,8 @@ from ai_researcher.ai_researcher_tools import (
     apply_patch,
     run_pytest,
     run_cmd,
+    run_terminal_command,
+    get_errors,
     # Virtual environment tools
     create_venv,
     run_in_venv,
@@ -49,9 +58,12 @@ from ai_researcher.ai_researcher_tools import (
     download_kaggle_dataset,
 )
 
-from .config import EXECUTOR_SYSTEM_PROMPT
+from .config import EXECUTOR_SYSTEM_PROMPT, get_current_datetime, FAST_EXECUTOR_PROMPT
 from .pruning import prune_messages_for_llm, summarize_tool_output
 from .state import AgentState, ExecutorOutput
+from .logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 # =========================
@@ -65,6 +77,13 @@ TOOLS = [
     edit_file,
     list_files,
     grep,
+    grep_search,
+    create_dir,
+    list_dir,
+    remove_dir,
+    dir_exists,
+    move_path,
+    copy_path,
     # Git
     git_diff,
     git_status,
@@ -79,6 +98,8 @@ TOOLS = [
     apply_patch,
     run_pytest,
     run_cmd,
+    run_terminal_command,
+    get_errors,
     # Virtual environment
     create_venv,
     run_in_venv,
@@ -135,7 +156,7 @@ def parse_executor_response(content: str) -> ExecutorOutput:
         raise ValueError("Empty content - executor provided no response")
 
     # Try to parse as direct JSON first
-    print(f"[DEBUG] Trying to parse executor response as JSON: {content[:500]}")
+    logger.debug(f"Trying to parse executor response as JSON: {content[:500]}")
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
@@ -199,24 +220,24 @@ def execute_tool_call(call: Dict[str, Any], repo_root: str) -> str:
         args["repo_root"] = repo_root
 
     # Debug logging for tool calls
-    print(f"[DEBUG] Calling tool: {name}")
-    print(f"[DEBUG] Tool args: {args}")
+    logger.tool(f"Calling tool: {name}")
+    logger.tool(f"Tool args: {args}")
 
     tool_fn = TOOL_BY_NAME.get(name)
     if not tool_fn:
         error_msg = f"ERROR: tool '{name}' not found. Available: {list(TOOL_BY_NAME.keys())}"
-        print(f"[DEBUG] Tool error: {error_msg}")
+        logger.error(f"Tool error: {error_msg}")
         return error_msg
 
     try:
         result = tool_fn.invoke(args)
         result_str = str(result)
-        print(f"[DEBUG] Tool result length: {len(result_str)} characters")
-        print(f"[DEBUG] Tool result preview: {result_str[:200]}{'...' if len(result_str) > 200 else ''}")
+        logger.tool(f"Tool result length: {len(result_str)} characters")
+        logger.tool(f"Tool result preview: {result_str[:200]}{'...' if len(result_str) > 200 else ''}")
         return result_str
     except Exception as e:
         error_msg = f"ERROR executing {name}: {e}"
-        print(f"[DEBUG] Tool exception: {error_msg}")
+        logger.error(f"Tool exception: {error_msg}")
         return error_msg
 
 
@@ -241,7 +262,8 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
 
     # Build local message context for this executor turn
     local_messages: List[BaseMessage] = [
-        SystemMessage(content=EXECUTOR_SYSTEM_PROMPT),
+        #SystemMessage(content=EXECUTOR_SYSTEM_PROMPT.format(current_datetime=get_current_datetime())),
+        SystemMessage(content=FAST_EXECUTOR_PROMPT),
         HumanMessage(
             content=f"GOAL: {state['goal']}\n"
                     f"WORKING DIRECTORY: {state['repo_root']}\n"

@@ -28,7 +28,7 @@ def build_agent_graph():
     graph.add_node("reviewer", reviewer_node)
     graph.add_node("advance", advance_node)
 
-    # Set entry point
+    # Set an entry point
     graph.set_entry_point("planner")
 
     # Define edges with routing logic

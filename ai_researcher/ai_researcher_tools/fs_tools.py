@@ -328,3 +328,95 @@ def grep(repo_root: str, pattern: str, path: str = ".", flags: str = "") -> str:
                         return "\n".join(hits)
         return "\n".join(hits) if hits else "(no matches)"
 
+
+@tool
+def grep_search(
+    repo_root: str,
+    query: str,
+    path: str = ".",
+    case_sensitive: bool = False,
+    max_results: int = 200,
+) -> str:
+    """Search for text in files within a directory and its subdirectories.
+
+    This tool searches for the exact text query in all files under the specified path.
+    Returns matching lines with file names and line numbers.
+
+    Args:
+        repo_root: The root directory
+        query: The text string to search for
+        path: Relative path to search within (default: current directory, searches all subdirectories)
+        case_sensitive: If True, search is case-sensitive; if False (default), case-insensitive
+        max_results: Maximum number of matching lines to return (default: 200)
+
+    Returns:
+        A formatted list of matches showing file:line_number:matching_line
+        or "(no matches)" if nothing is found
+
+    Example:
+        grep_search("/path/to/repo", "def my_function", "src", case_sensitive=True)
+        Returns lines like: src/module.py:42:def my_function(arg1, arg2):
+    """
+    root = Path(repo_root).resolve()
+    base = safe_path(repo_root, path)
+
+    if not base.exists():
+        return f"Error: Path '{path}' does not exist"
+
+    if not base.is_dir():
+        return f"Error: Path '{path}' is not a directory"
+
+    # Try using ripgrep (rg) first for better performance
+    try:
+        flags = "-n"  # Show line numbers
+        if not case_sensitive:
+            flags += " -i"  # Case-insensitive search
+        flags += f" -m {max_results}"  # Limit results
+
+        # Use fixed strings mode (not regex) for exact text search
+        cmd = f'rg {flags} -F -- "{query}" "{base}"'
+        result = run_sandboxed(cmd, cwd=root, validate=True)
+
+        # Make paths relative to repo_root
+        lines = result.splitlines()
+        adjusted_lines = []
+        for line in lines[:max_results]:
+            adjusted_lines.append(line)
+
+        if len(lines) > max_results:
+            adjusted_lines.append(f"... (showing first {max_results} of {len(lines)} matches)")
+
+        return "\n".join(adjusted_lines) if adjusted_lines else "(no matches)"
+
+    except Exception:
+        # Fallback to pure Python implementation if ripgrep is not available
+        hits: list[str] = []
+        search_query = query if case_sensitive else query.lower()
+
+        try:
+            for f in sorted(base.rglob("*")):
+                if not f.is_file():
+                    continue
+
+                try:
+                    text = f.read_text(encoding="utf-8", errors="ignore")
+                except Exception:
+                    continue
+
+                for i, line in enumerate(text.splitlines(), start=1):
+                    search_line = line if case_sensitive else line.lower()
+                    if search_query in search_line:
+                        rel = f.relative_to(root)
+                        hits.append(f"{rel}:{i}:{line}")
+
+                        if len(hits) >= max_results:
+                            hits.append(f"... (truncated at {max_results} results)")
+                            return "\n".join(hits)
+
+            return "\n".join(hits) if hits else "(no matches)"
+
+        except Exception as e:
+            return f"Error during search: {str(e)}"
+
+
+

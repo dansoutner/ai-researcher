@@ -13,9 +13,13 @@ from .config import (
     PLANNER_SYSTEM_PROMPT,
     REVIEWER_SYSTEM_PROMPT,
     VALID_VERDICTS,
+    get_current_datetime,
 )
 from .state import AgentState
 from .tools import run_executor_turn
+from .logging_utils import get_logger, format_section_header
+
+logger = get_logger(__name__)
 
 
 # =========================
@@ -185,7 +189,7 @@ def planner_node(state: AgentState) -> AgentState:
         from ai_researcher.ai_researcher_tools import memory_set
         repo_root = state['repo_root']
         print(f"[DEBUG] First iteration - saving working directory to memory: {repo_root}")
-        memory_set.invoke({"key": "working_directory", "value": repo_root})
+        memory_set.invoke({"repo_root": repo_root, "key": "working_directory", "value": repo_root})
 
     llm = require_llm()
 
@@ -197,7 +201,7 @@ def planner_node(state: AgentState) -> AgentState:
         fix_hint = f"\nPrevious execution failed: {state['executor_output']['output']}\n"
 
     messages = [
-        SystemMessage(content=PLANNER_SYSTEM_PROMPT),
+        SystemMessage(content=PLANNER_SYSTEM_PROMPT.format(current_datetime=get_current_datetime())),
         HumanMessage(
             content=f"GOAL: {state['goal']}{fix_hint}\nCreate/adjust the plan."
         ),
@@ -245,22 +249,22 @@ def executor_node(state: AgentState) -> AgentState:
         Updated state with execution results
     """
     current_step = state["plan"][state["step_index"]] if state["plan"] else "No plan"
-    print(f"\n[DEBUG] === EXECUTOR NODE (iteration {state['iters']}, step {state['step_index'] + 1}/{len(state['plan'])}) ===")
-    print(f"[DEBUG] Executing step: {current_step}")
+    logger.info(f"=== EXECUTOR NODE (iteration {state['iters']}, step {state['step_index'] + 1}/{len(state['plan'])}) ===")
+    logger.info(f"Executing step: {current_step}")
 
     # CRITICAL: Retrieve working directory from memory to prevent hallucinated paths
     from ai_researcher.ai_researcher_tools import memory_get
     try:
-        saved_workdir = memory_get.invoke({"key": "working_directory"})
+        saved_workdir = memory_get.invoke({"repo_root": state["repo_root"], "key": "working_directory"})
         if saved_workdir and saved_workdir != "Key 'working_directory' not found in memory.":
-            print(f"[DEBUG] Retrieved working directory from memory: {saved_workdir}")
+            logger.debug(f"Retrieved working directory from memory: {saved_workdir}")
             # Update state with retrieved working directory to ensure consistency
             state["repo_root"] = saved_workdir
         else:
-            print(f"[DEBUG] No working directory in memory, using state value: {state['repo_root']}")
+            logger.debug(f"No working directory in memory, using state value: {state['repo_root']}")
     except Exception as e:
-        print(f"[DEBUG] Failed to retrieve working directory from memory: {e}")
-        print(f"[DEBUG] Using state value: {state['repo_root']}")
+        logger.warning(f"Failed to retrieve working directory from memory: {e}")
+        logger.debug(f"Using state value: {state['repo_root']}")
 
     llm = require_llm()
     return run_executor_turn(llm, state)
@@ -280,13 +284,13 @@ def reviewer_node(state: AgentState) -> AgentState:
     Returns:
         Updated state with verdict and feedback
     """
-    print(f"\n[DEBUG] === REVIEWER NODE (iteration {state['iters']}) ===")
+    logger.info(f"=== REVIEWER NODE (iteration {state['iters']}) ===")
 
     # Check if executor failed - if so, automatically set retry verdict
     executor_output = state.get("executor_output")
-    print(f"[DEBUG] Executor output: {executor_output}")
+    logger.debug(f"Executor output: {executor_output}")
     if executor_output and not executor_output["success"]:
-        print(f"[DEBUG] Executor failed, automatically setting verdict to 'retry'")
+        logger.warning(f"Executor failed, automatically setting verdict to 'retry'")
         state["verdict"] = "retry"
         state["last_result"] = f"RETRY: Executor failed - {executor_output['output']}"
         return state
@@ -299,7 +303,7 @@ def reviewer_node(state: AgentState) -> AgentState:
     ])
 
     messages = [
-        SystemMessage(content=REVIEWER_SYSTEM_PROMPT),
+        SystemMessage(content=REVIEWER_SYSTEM_PROMPT.format(current_datetime=get_current_datetime())),
         HumanMessage(
             content=(
                 f"GOAL: {state['goal']}\n"
@@ -331,10 +335,10 @@ def reviewer_node(state: AgentState) -> AgentState:
         f"{verdict.upper()}: {reason} | {fix_suggestion}"
     )
 
-    print(f"[DEBUG] Reviewer verdict: {verdict.upper()}")
-    print(f"[DEBUG] Reason: {reason}")
+    logger.info(f"Reviewer verdict: {verdict.upper()}")
+    logger.debug(f"Reason: {reason}")
     if fix_suggestion:
-        print(f"[DEBUG] Fix suggestion: {fix_suggestion}")
+        logger.debug(f"Fix suggestion: {fix_suggestion}")
 
     return state
 

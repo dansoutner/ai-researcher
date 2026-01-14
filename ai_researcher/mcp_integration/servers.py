@@ -114,11 +114,23 @@ def get_arxiv_server_params(repo_root: Optional[str] = None) -> StdioServerParam
     else:
         repo_root = Path(repo_root)
 
-    server_path = repo_root / "mcp_servers" / "arxiv-mcp-server" / "dist" / "index.js"
+    server_dir = repo_root / "mcp_servers" / "arxiv-mcp-server" / "src" / "arxiv_server"
+
+    # Set up environment with download path
+    env = os.environ.copy()
+    if "DOWNLOAD_PATH" not in env:
+        # Default to a downloads folder in the user's home directory
+        env["DOWNLOAD_PATH"] = str(Path.home() / "Downloads" / "arxiv_papers")
+
     return create_mcp_server_params(
-        command="node",
-        args=[str(server_path)],
-        env=os.environ.copy()
+        command="uv",
+        args=[
+            "--directory",
+            str(server_dir),
+            "run",
+            "server.py"
+        ],
+        env=env
     )
 
 
@@ -161,13 +173,24 @@ def get_arxiv_server_config(repo_root: Optional[str] = None) -> MCPServerConfig:
     else:
         repo_root = Path(repo_root)
 
-    server_path = repo_root / "mcp_servers" / "arxiv-mcp-server" / "dist" / "index.js"
+    server_dir = repo_root / "mcp_servers" / "arxiv-mcp-server" / "src" / "arxiv_server"
+
+    # Set up environment with download path
+    env = os.environ.copy()
+    if "DOWNLOAD_PATH" not in env:
+        # Default to a downloads folder in the user's home directory
+        env["DOWNLOAD_PATH"] = str(Path.home() / "Downloads" / "arxiv_papers")
 
     return MCPServerConfig(
         name="arxiv",
-        command="node",
-        args=[str(server_path)],
-        env=os.environ.copy(),
+        command="uv",
+        args=[
+            "--directory",
+            str(server_dir),
+            "run",
+            "server.py"
+        ],
+        env=env,
         description="Research paper search and retrieval from arXiv"
     )
 

@@ -234,18 +234,36 @@ def build_sandbox_env(repo_root: Path, allow_network: bool = False) -> dict:
     if not allow_network:
         env.update(SANDBOX_ENV_OVERRIDES)
 
-    safe_paths = ["/usr/local/bin", "/usr/bin", "/bin", "/usr/local/sbin", "/usr/sbin", "/sbin"]
+    # Define safe path prefixes (normalized without trailing slashes)
+    safe_paths = ["/usr/local/bin", "/usr/bin", "/bin", "/usr/local/sbin", "/usr/sbin", "/sbin", "/opt/homebrew/bin"]
     home = os.path.expanduser("~")
     safe_paths.extend(
         [
             f"{home}/.local/bin",
             f"{home}/.cargo/bin",
             f"{home}/.pyenv/shims",
-            f"{home}/.nvm/versions/node/*/bin",
         ]
     )
+
+    # Add node paths if they exist (handle wildcards)
+    import glob
+    nvm_pattern = f"{home}/.nvm/versions/node/*/bin"
+    safe_paths.extend(glob.glob(nvm_pattern))
+
+    # Filter existing PATH entries
     existing = env.get("PATH", "").split(":")
-    filtered = [p for p in existing if any(p.startswith(s.rstrip("*")) for s in safe_paths)]
+    filtered = []
+    for path in existing:
+        if not path:  # Skip empty paths
+            continue
+        # Normalize path (remove trailing slashes for comparison)
+        normalized_path = path.rstrip("/")
+        # Check if this path or its parent matches any safe path
+        for safe in safe_paths:
+            safe_normalized = safe.rstrip("/")
+            if normalized_path == safe_normalized or normalized_path.startswith(safe_normalized + "/"):
+                filtered.append(path)
+                break
 
     venv_bin = repo_root / ".venv" / "bin"
     if venv_bin.exists():
@@ -289,13 +307,14 @@ def run_sandboxed_with_env(
     timeout_s: int = DEFAULT_TIMEOUT_S,
     validate: bool = True,
     extra_env: dict[str, str] | None = None,
+    allow_network: bool = False,
 ) -> str:
     timeout_s = min(timeout_s, MAX_TIMEOUT_S)
 
     if validate:
         validate_command(cmd, cwd)
 
-    env = build_sandbox_env(cwd)
+    env = build_sandbox_env(cwd, allow_network=allow_network)
     if extra_env:
         env.update(extra_env)
 

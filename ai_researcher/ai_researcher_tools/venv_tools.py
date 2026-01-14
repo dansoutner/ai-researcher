@@ -100,10 +100,12 @@ def run_in_venv(
     cmd: str,
     timeout_s: int = 60,
     venv_path: str | None = None,
+    allow_network: bool = False,
 ) -> str:
     """Run a sandboxed command with the configured virtualenv on PATH.
 
     If `venv_path` is not provided, uses the stored `venv_path` value from memory.
+    Set `allow_network=True` to allow network access (e.g., for pip install from PyPI).
     """
 
     root = Path(repo_root).resolve()
@@ -131,4 +133,4 @@ def run_in_venv(
 
     extra_env = {"PATH": f"{bin_dir}:{build_sandbox_env(root).get('PATH', '')}"}
 
-    return run_sandboxed_with_env(cmd, cwd=root, timeout_s=timeout_s, validate=True, extra_env=extra_env)
+    return run_sandboxed_with_env(cmd, cwd=root, timeout_s=timeout_s, validate=True, extra_env=extra_env, allow_network=allow_network)

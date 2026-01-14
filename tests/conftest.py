@@ -58,6 +58,16 @@ def mock_api_key(monkeypatch):
     return "test-key-123"
 
 
+@pytest.fixture
+def clean_memory(temp_dir):
+    """Clear memory before and after test."""
+    from ai_researcher.ai_researcher_tools import clear_memory
+
+    clear_memory.invoke({})
+    yield temp_dir
+    clear_memory.invoke({})
+
+
 # Pytest configuration
 def pytest_configure(config):
     """Configure pytest with custom markers."""

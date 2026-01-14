@@ -1,0 +1,109 @@
+┌─────────────────────────────────────────────────────────────┐
+│   AGENT V3 LOGGING - QUICK REFERENCE CARD                  │
+└─────────────────────────────────────────────────────────────┘
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ LOG LEVELS & COLORS                                         ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+Level    Color     Use For                        Example
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEBUG    🔵 Cyan   Debugging, internals          "Retrieved from memory"
+TOOL     🔷 Blue   Tool calls & results          "Calling tool: git_status"
+INFO     🟢 Green  Progress, state changes       "=== EXECUTOR NODE ==="
+USER     🟣 Magenta User messages, plans         "PLAN GENERATED"
+WARNING  🟡 Yellow Potential issues              "File not found"
+ERROR    🔴 Red    Errors, failures              "Parse error"
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ BASIC USAGE                                                 ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+# Get a logger
+from ai_researcher.agent_v3_claude.logging_utils import get_logger
+logger = get_logger(__name__)
+
+# Log messages
+logger.debug("Debug info")
+logger.tool("Tool: list_files")
+logger.info("State change")
+logger.user("Result for user")
+logger.warning("Warning!")
+logger.error("Error!")
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ FORMAT HELPERS                                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+from ai_researcher.agent_v3_claude.logging_utils import (
+    format_section_header,
+    format_subsection_header
+)
+
+logger.user(format_section_header("PLAN GENERATED"))
+logger.user("1. First step")
+logger.user(format_subsection_header("Results"))
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ ADJUST VERBOSITY                                            ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+from ai_researcher.agent_v3_claude import setup_logger
+import logging
+
+# Show everything (dev mode)
+logger = setup_logger("agent", level=logging.DEBUG)
+
+# Important only (production)
+logger = setup_logger("agent", level=logging.INFO)
+
+# Problems only (quiet)
+logger = setup_logger("agent", level=logging.WARNING)
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ WHEN TO USE EACH LEVEL                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+DEBUG:   Internal operations, variable values, flow control
+TOOL:    Tool name, arguments, results, tool errors
+INFO:    Node transitions, iteration numbers, verdicts
+USER:    Plans, final results, summaries, anything user sees
+WARNING: Retries, fallbacks, missing non-critical resources
+ERROR:   Failures, exceptions, parse errors
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ RUNNING THE AGENT                                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+# No changes needed! Just run as normal:
+from ai_researcher.agent_v3_claude import run
+
+state = run(
+    goal="Create a Python package",
+    max_iters=10
+)
+
+# Output is now color-coded automatically! 🎨
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DEMO SCRIPTS                                                ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+# Simple test
+python test_logging.py
+
+# Full demo
+python demo_logging.py
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DOCUMENTATION                                               ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+📖 ai_researcher/agent_v3_claude/LOGGING_README.md
+📖 docs/AGENT_V3_LOGGING_UPDATE.md
+📖 docs/AGENT_V3_LOGGING_EXAMPLES.md
+📖 docs/AGENT_V3_LOGGING_SUMMARY.md
+📖 LOGGING_UPDATE_COMPLETE.md
+
+└─────────────────────────────────────────────────────────────┘
+
