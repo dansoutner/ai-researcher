@@ -1,114 +1,128 @@
-# Executor Structured Output - Quick Reference
+# Quick Reference
 
-## What Changed?
+Fast lookup for common AI Researcher tasks and commands.
 
-### ExecutorOutput Structure
+## Installation & Setup
+
+```bash
+# Install
+git clone https://github.com/yourusername/ai-researcher.git
+cd ai-researcher && pip install -e .
+
+# Set API key
+export ANTHROPIC_API_KEY="your-key-here"
+```
+
+## Python API
+
 ```python
-class ExecutorOutput(TypedDict):
-    success: bool   # True if step succeeded, False if failed
-    output: str     # Description of what happened
+from ai_researcher.agent_v3_claude import run
+
+# Basic usage
+state = run("your task description", max_iters=10)
+print(f"Status: {state['status']}")
+
+# Check if successful
+success = state['status'] == 'success'
 ```
 
-### Automatic Routing
+## CLI Commands
+
+```bash
+# Basic syntax
+ai-researcher-agent-v3 "task description"
+
+# Common tasks
+ai-researcher-agent-v3 "Run pytest"
+ai-researcher-agent-v3 "Format code with black"  
+ai-researcher-agent-v3 "Create requirements.txt"
+ai-researcher-agent-v3 "Add tests for my functions"
+```
+
+## Common Task Examples
+
+### Testing
 ```python
-if executor_output["success"] == False:
-    → Route to PLANNER (automatic retry)
-else:
-    → Route to REVIEWER (normal flow)
+run("Run pytest and fix any failing tests", max_iters=10)
+run("Add missing tests to achieve 80% coverage", max_iters=15)
+run("Generate test cases for the user authentication module", max_iters=8)
 ```
 
-## Code Locations
-
-| Feature | File | Function/Class |
-|---------|------|----------------|
-| ExecutorOutput definition | `state.py` | `class ExecutorOutput(TypedDict)` |
-| State field | `state.py` | `AgentState["executor_output"]` |
-| Executor prompt | `config.py` | `EXECUTOR_SYSTEM_PROMPT` |
-| Response parser | `tools.py` | `parse_executor_response()` |
-| Executor integration | `tools.py` | `run_executor_turn()` |
-| **Auto-retry logic** | `routing.py` | `route_after_executor()` |
-| Planner feedback | `nodes.py` | `planner_node()` |
-| Graph routing | `graph.py` | `add_conditional_edges("executor", ...)` |
-
-## Usage
-
-### Checking Executor Status
+### Code Quality
 ```python
-state = run("Some goal", max_iters=10)
-
-if state["executor_output"]:
-    if state["executor_output"]["success"]:
-        print("✓", state["executor_output"]["output"])
-    else:
-        print("✗", state["executor_output"]["output"])
+run("Format all Python files with black", max_iters=5)
+run("Fix all linting issues", max_iters=8)
+run("Add type hints to public functions", max_iters=10)
+run("Add docstrings to all classes and functions", max_iters=12)
 ```
 
-### Executor JSON Response Format
-```json
-{
-  "success": true,
-  "output": "Successfully ran pytest - all 15 tests passed"
-}
+### Feature Development
+```python
+run("Add user authentication to the Flask app", max_iters=20)
+run("Create a REST API for todo items", max_iters=18)
+run("Add database migrations for the new schema", max_iters=10)
 ```
 
-or
-
-```json
-{
-  "success": false,
-  "output": "Failed to run pytest - command not found"
-}
+### Documentation
+```python
+run("Generate a comprehensive README", max_iters=8)
+run("Create API documentation", max_iters=12)
+run("Add installation and usage instructions", max_iters=10)
 ```
 
-## Workflow
-
-```
-                    ┌─────────┐
-                    │ Planner │
-                    └────┬────┘
-                         │
-                         ▼
-                    ┌─────────┐
-                    │Executor │
-                    │ Returns │
-                    │  JSON   │
-                    └────┬────┘
-                         │
-            ┌────────────┴────────────┐
-            │                         │
-       success=True             success=False
-            │                         │
-            ▼                         ▼
-      ┌─────────┐              ┌─────────┐
-      │Reviewer │              │ Planner │
-      └────┬────┘              │ (retry) │
-           │                   └─────────┘
-           ▼
-      ┌─────────┐
-      │ Advance │
-      └─────────┘
+### Debugging
+```python
+run("Fix the memory leak in the server code", max_iters=15)
+run("Debug why the tests are failing", max_iters=12)
+run("Analyze and fix performance bottlenecks", max_iters=18)
 ```
 
-## Key Points
+## Configuration
 
-- ✅ Executor returns structured JSON (not chat)
-- ✅ `success: false` triggers automatic replan
-- ✅ No LLM needed to interpret failures
-- ✅ Faster recovery from failures
-- ✅ Backward compatible
+### Custom Iterations
+```python
+# For simple tasks
+state = run("format code", max_iters=5)
 
-## Error Handling
+# For complex tasks  
+state = run("refactor entire module", max_iters=25)
+```
 
-- Invalid JSON → Treated as failure
-- Missing fields → Treated as failure
-- Parse error → Treated as failure
-- Tool exception → Executor marks success=false
+### Working Directory
+```python
+import os
+os.chdir('/path/to/project')
+state = run("your task", max_iters=10)
+```
 
-## Benefits
+## Output Understanding
 
-1. **Fast**: Skip reviewer on failures
-2. **Reliable**: Boolean status, no interpretation
-3. **Clear**: Structured output
-4. **Automatic**: Self-healing on failures
-5. **Debuggable**: Easy to check success status
+- 🟢 **INFO** - Progress updates
+- 🟣 **USER** - Plans and results for you
+- 🔷 **TOOL** - Tool execution
+- 🟡 **WARNING** - Potential issues
+- 🔴 **ERROR** - Errors
+
+## Troubleshooting
+
+```bash
+# Check API key
+echo $ANTHROPIC_API_KEY
+
+# Check working directory
+pwd
+
+# Run tests to verify installation
+pytest tests/
+```
+
+## Status Codes
+
+- `'success'` - Task completed successfully  
+- `'failed'` - Task failed after max iterations
+- `'running'` - Task still in progress (shouldn't see this in final state)
+
+---
+
+**Need more details?** See [Getting Started](GETTING_STARTED.md) or [Advanced Configuration](ADVANCED.md).
 

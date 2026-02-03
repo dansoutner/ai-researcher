@@ -2,39 +2,66 @@
 
 Complete guide to AI Researcher documentation.
 
-## Quick Start
+## Quick Start (Choose Your Speed)
 
-**New to the project?** Start here:
-1. [Project README](readme.md) - Project overview and installation
-2. [Agent v3 README](agent_v3_claude/README.md) - Recommended agent guide
-3. [Quick Reference](QUICK_REFERENCE.md) - Fast lookup for common tasks
+**New to the project?** Pick your preferred entry point:
+
+1. **[Project README](../README.md)** - Project overview and 5-minute setup
+2. **[Getting Started](GETTING_STARTED.md)** - Comprehensive setup and basic usage (recommended)
+3. **[Advanced Configuration](ADVANCED.md)** - Complex usage patterns and customization
 
 ## Core Documentation
 
-### Project Overview
-- **[readme.md](readme.md)** - Main project documentation
-  - All agent versions overview
-  - Installation instructions
-  - Project structure
-  - Testing guide
+### User Guides
+- **[Getting Started](GETTING_STARTED.md)** - Primary user guide
+  - 5-minute setup
+  - Basic usage patterns
+  - Common tasks
+  - Quick troubleshooting
 
-### Agent v3 Claude (Recommended)
-- **[agent_v3_claude/README.md](agent_v3_claude/README.md)** - Complete user guide
-  - Usage examples
+- **[Advanced Configuration](ADVANCED.md)** - Advanced usage
+  - Multiple installation options
+  - Custom LLM providers
+  - Complex usage patterns
+  - Performance optimization
+
+- **[Quick Reference](QUICK_REFERENCE.md)** - Fast lookup
+  - Common commands
+  - API examples
+  - Troubleshooting shortcuts
+
+### Technical Documentation
+- **[agent_v3_claude/README.md](../ai_researcher/agent_v3_claude/README.md)** - Complete technical guide
+  - All available tools
   - Configuration options
-  - Available tools
-  - Workflow details
+  - Detailed usage examples
 
-- **[agent_v3_claude/ARCHITECTURE.md](agent_v3_claude/ARCHITECTURE.md)** - Technical architecture
+- **[agent_v3_claude/ARCHITECTURE.md](../ai_researcher/agent_v3_claude/ARCHITECTURE.md)** - System architecture
   - Component design
   - Data flow
   - Design patterns
   - Extension points
 
-- **[agent_v3_claude/REFACTORING_SUMMARY.md](agent_v3_claude/REFACTORING_SUMMARY.md)** - Evolution history
-  - Module breakdown
-  - Improvements made
-  - Before/after comparison
+### Specialized Guides  
+- **[MCP All Agents Guide](MCP_ALL_AGENTS_GUIDE.md)** - MCP integration
+- **[Features](FEATURES.md)** - Comprehensive feature overview
+- **[TODO](TODO.md)** - Development roadmap
+
+### Utilities
+- **[LOGGING_QUICK_REF.txt](LOGGING_QUICK_REF.txt)** - Logging system reference
+
+## Archived Documentation
+
+Historical and technical implementation documents are stored in the `archive/` directory:
+- Implementation details and changelogs
+- Bug fix summaries
+- Legacy integration guides
+- Development notes
+
+---
+
+**Need help?** Start with [Getting Started](GETTING_STARTED.md) for most use cases.
+
 
 ## Feature Documentation
 

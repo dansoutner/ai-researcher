@@ -115,27 +115,12 @@ ai-researcher-agent-v3 "Create a Flask API with tests"
 # Run all tests
 pytest
 
-# Run with coverage
+# Run with coverage  
 pytest --cov=ai_researcher --cov-report=html
 
 # Run specific test suite
 pytest tests/agent_v3/
 ```
-
-## 📋 Requirements
-
-- **Python:** 3.10 or higher
-- **API Keys:** 
-  - `ANTHROPIC_API_KEY` (for Claude - recommended)
-  - `OPENAI_API_KEY` (alternative LLM provider)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🔗 Project Structure
 
@@ -144,59 +129,25 @@ ai-researcher/
 ├── ai_researcher/
 │   ├── agent_v3_claude/      # Main agent implementation
 │   ├── ai_researcher_tools/  # Reusable tool library
-│   └── mcp_integration/      # MCP server integration
-├── tests/                     # Comprehensive test suite
-└── docs/                      # Documentation
+│   ├── mcp_integration/      # MCP server integration
+│   └── mcp_servers/          # arXiv MCP server
+├── tests/                    # Comprehensive test suite
+└── docs/                     # Documentation
 ```
+
+## Requirements
+
+- **Python:** 3.10+
+- **API Key:** `ANTHROPIC_API_KEY` (Claude) or `OPENAI_API_KEY`
+
+## 🤝 Contributing
+
+Contributions welcome! This is a research project exploring autonomous agent architectures.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Ready to get started?** Check out the [Getting Started Guide](docs/GETTING_STARTED.md) or jump straight to the [API Reference](docs/API_REFERENCE.md).
-
-### Memory & Persistence
-- Key-value storage across execution steps
-- Repository maps and test result caching
-
-## Documentation
-
-### Architecture & Design
-- [Agent v3 Architecture](agent_v3_claude/README.md) - Detailed architecture guide
-- [Refactoring Summary](agent_v3_claude/REFACTORING_SUMMARY.md) - Evolution from monolith to modules
-
-### Feature Documentation
-- [Quick Reference](QUICK_REFERENCE.md) - Fast lookup for executor structured output
-- [Executor Output](EXECUTOR_OUTPUT_SUMMARY.md) - Structured status implementation
-- [Routing Logic](ROUTING_FIX_SUMMARY.md) - Workflow routing details
-- [Tools Integration](AGENT_V3_TOOLS_INTEGRATION.md) - Tool system overview
-
-### Diagrams
-- [Executor Workflow](EXECUTOR_WORKFLOW_DIAGRAM.md) - Visual workflow comparison
-
-## MCP Servers
-
-### arXiv MCP Server
-**Location:** `mcp_servers/arxiv-mcp-server/`
-
-Model Context Protocol server for searching and retrieving academic papers from arXiv.org.
-
-📖 [Setup instructions](mcp_servers/arxiv-mcp-server/README.md)
-
-## Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test suites
-pytest tests/test_agent_v3_pruning.py
-pytest tests/test_git_tools.py
-pytest tests/test_python_tools.py
-```
-
-## Contributing
-
-This is a research project exploring autonomous agent architectures. Feel free to experiment and extend!
-
-## License
-
-See individual component licenses.
+**Ready to start?** → [Getting Started Guide](docs/GETTING_STARTED.md)
