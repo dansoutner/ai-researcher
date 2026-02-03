@@ -1,127 +1,157 @@
 # AI Researcher
 
-A collection of autonomous AI agent implementations for research and development tasks.
+> **Production-ready autonomous AI agents for software development tasks**
 
-## Overview
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains multiple agent architectures that demonstrate various approaches to building autonomous AI systems capable of:
-- Planning and executing multi-step tasks
-- Managing code repositories and running tests
-- Interacting with file systems and command-line tools
-- Self-correcting through structured feedback loops
+An autonomous AI agent system that can plan, execute, and self-correct to accomplish complex software development tasks. Built with LangGraph and Claude, featuring a modular planner-executor-reviewer architecture.
 
-## Agent Implementations
+## ✨ Key Features
 
-### Agent v3 Claude (Recommended)
-**Location:** `agent_v3_claude/`
+- 🤖 **Autonomous Execution** - Self-correcting workflow with automatic error recovery
+- 🛠️ **26+ Built-in Tools** - File system, Git, pytest, virtual environments, and more
+- 🔄 **Planner-Executor-Reviewer** - Proven architecture for reliable task completion
+- 🎨 **Colored Logging** - Professional, color-coded output for easy debugging
+- 🔌 **MCP Integration** - Extensible via Model Context Protocol servers
+- 📦 **Production Ready** - Type-safe, tested, and modular design
 
-A production-ready LangGraph-based agent with a modular planner-executor-reviewer architecture:
-- ✅ **Structured Output**: Executor returns typed success/failure status
-- ✅ **Automatic Recovery**: Self-healing on failures without manual intervention
-- ✅ **26+ Tools**: File system, Git, pytest, virtual environments, memory persistence
-- ✅ **Context Management**: Intelligent message pruning for large outputs
-- ✅ **Modular Design**: Clean separation of concerns across 9 modules
+## 🚀 Quick Start
 
-**Quick Start:**
-```python
-from ai_researcher import run_v3
+### Installation
 
-state = run_v3("Run pytest and fix any failing tests", max_iters=10)
-print(f"Final status: {state['status']}")
-```
-
-Or use the CLI:
 ```bash
-ai-researcher-agent-v3 "Your task here"
-```
-
-📖 [Read the full documentation](docs/agent_v3_claude/README.md)
-
-### Agent v2 (LangGraph + Together)
-**Location:** `agent_v2/`
-
-LangGraph implementation integrated with Together AI's code interpreter:
-```bash
-# Run as module
-python -m ai_researcher.agent_v2.langgraph_agent --query "Your task here"
-
-# Or use installed script
-ai-researcher-agent-v2 --query "Your task here"
-```
-
-**Common Options:**
-- `--data-dir ./data` - Upload local files to code interpreter
-- `--model <model-name>` - Specify Together AI model
-- `--max-iterations 15` - Set iteration limit
-
-### Agent v1 (Legacy)
-**Location:** `agent_v1/`
-
-Original proof-of-concept implementation.
-
-## Requirements
-
-- **Python:** 3.10+
-- **API Keys:**
-  - `ANTHROPIC_API_KEY` (for Agent v3 with Claude)
-  - `TOGETHER_API_KEY` (for Agent v2)
-  - `OPENAI_API_KEY` (optional, for Agent v3 with OpenAI)
-
-## Installation
-
-### Using uv (Recommended)
-```bash
-brew install uv  # macOS
-uv venv
-source .venv/bin/activate
-uv sync
-```
-
-### Using pip
-```bash
-python -m venv .venv
-source .venv/bin/activate
+# Install with pip
 pip install -e .
+
+# Or with uv (recommended)
+uv venv && source .venv/bin/activate && uv sync
 ```
 
-## Project Structure
+### Set API Key
+
+```bash
+export ANTHROPIC_API_KEY="your-key-here"
+```
+
+### Run Your First Agent
+
+**Python API:**
+```python
+from ai_researcher.agent_v3_claude import run
+
+state = run("Run pytest and fix any failing tests", max_iters=10)
+print(f"Status: {state['status']}")
+```
+
+**Command Line:**
+```bash
+ai-researcher-agent-v3 "Create a Flask API with tests"
+```
+
+## 📖 Documentation
+
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Detailed setup and usage
+- **[Agent v3 Architecture](docs/ARCHITECTURE.md)** - How the agent works
+- **[Available Tools](docs/TOOLS.md)** - Complete tool reference
+- **[MCP Integration](docs/MCP_INTEGRATION.md)** - Extending with MCP servers
+- **[API Reference](docs/API_REFERENCE.md)** - Python API documentation
+
+## 🏗️ Architecture
+
+```
+┌─────────┐
+│ Planner │ → Creates step-by-step execution plan
+└────┬────┘
+     ↓
+┌──────────┐
+│ Executor │ → Executes steps using tools
+└────┬─────┘
+     ↓
+┌──────────┐
+│ Reviewer │ → Evaluates progress, decides next action
+└────┬─────┘
+     ↓
+  continue / retry / replan / finish
+```
+
+**Key Design Principles:**
+- Structured outputs for reliable parsing
+- Automatic replanning on failures
+- Context window management for large outputs
+- Modular, testable components
+
+## 🛠️ Available Tools
+
+### File System
+`read_file`, `write_file`, `list_files`, `grep`, `edit_file`
+
+### Git Operations
+`git_status`, `git_diff`, `git_add`, `git_commit`, `git_log`, `git_branch_list`, `git_checkout`
+
+### Testing & Commands
+`run_pytest`, `run_cmd`, `run_terminal_command`, `get_errors`
+
+### Virtual Environments
+`create_venv`, `run_in_venv`
+
+### Memory (Persistence)
+`memory_set`, `memory_get`, `memory_list`, `memory_delete`
+
+[Full tool documentation →](docs/TOOLS.md)
+
+## 📊 Example Use Cases
+
+- 🐛 Debug and fix failing tests
+- 📦 Create Python packages with proper structure
+- 🔄 Refactor code across multiple files
+- 🧪 Generate and run test suites
+- 📝 Analyze and document codebases
+- 🔍 Search and analyze research papers (via arXiv MCP)
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=ai_researcher --cov-report=html
+
+# Run specific test suite
+pytest tests/agent_v3/
+```
+
+## 📋 Requirements
+
+- **Python:** 3.10 or higher
+- **API Keys:** 
+  - `ANTHROPIC_API_KEY` (for Claude - recommended)
+  - `OPENAI_API_KEY` (alternative LLM provider)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Project Structure
 
 ```
 ai-researcher/
-├── ai_researcher/             # Main Python package
-│   ├── agent_v1/             # Legacy proof-of-concept
-│   ├── agent_v2/             # LangGraph + Together AI
-│   ├── agent_v3_claude/      # Production-ready (recommended)
-│   ├── ai_researcher_tools/  # Reusable tool implementations
-│   └── mcp_servers/          # Model Context Protocol servers
-│       └── arxiv-mcp-server/ # arXiv paper search and retrieval
-├── tests/                     # Test suite
-├── examples/                  # Example scripts and demos
-├── docs/                      # Documentation
-├── experiments/               # Experimental features
-├── pyproject.toml            # Project metadata and dependencies
-├── README.md                 # This file
-└── LICENSE                   # MIT License
+├── ai_researcher/
+│   ├── agent_v3_claude/      # Main agent implementation
+│   ├── ai_researcher_tools/  # Reusable tool library
+│   └── mcp_integration/      # MCP server integration
+├── tests/                     # Comprehensive test suite
+└── docs/                      # Documentation
 ```
 
-## Tools & Capabilities
+---
 
-The agents have access to a comprehensive toolkit (`ai_researcher_tools/`):
-
-### File System
-- Read/write files, list directories, grep search
-
-### Git Operations
-- Status, diff, commit, branch management, PR preparation
-
-### Command Execution
-- Sandboxed shell commands with allowlist
-- pytest runner with timeout controls
-- Patch application
-
-### Virtual Environments
-- Create and manage Python virtual environments
-- Execute commands within isolated environments
+**Ready to get started?** Check out the [Getting Started Guide](docs/GETTING_STARTED.md) or jump straight to the [API Reference](docs/API_REFERENCE.md).
 
 ### Memory & Persistence
 - Key-value storage across execution steps
