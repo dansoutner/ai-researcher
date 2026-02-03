@@ -52,10 +52,10 @@ ai-researcher-agent-v3 "Create a Flask API with tests"
 ## 📖 Documentation
 
 - **[Getting Started Guide](docs/GETTING_STARTED.md)** - Detailed setup and usage
-- **[Agent v3 Architecture](docs/ARCHITECTURE.md)** - How the agent works
-- **[Available Tools](docs/TOOLS.md)** - Complete tool reference
-- **[MCP Integration](docs/MCP_INTEGRATION.md)** - Extending with MCP servers
-- **[API Reference](docs/API_REFERENCE.md)** - Python API documentation
+- **[Agent v3 Architecture](ai_researcher/agent_v3_claude/ARCHITECTURE.md)** - How the agent works
+- **[Available Tools](ai_researcher/agent_v3_claude/README.md#available-tools)** - Complete tool reference
+- **[MCP Integration](docs/MCP_ALL_AGENTS_GUIDE.md)** - Extending with MCP servers
+- **[API Reference](ai_researcher/agent_v3_claude/README.md)** - Python API documentation
 
 ## 🏗️ Architecture
 
@@ -98,7 +98,7 @@ ai-researcher-agent-v3 "Create a Flask API with tests"
 ### Memory (Persistence)
 `memory_set`, `memory_get`, `memory_list`, `memory_delete`
 
-[Full tool documentation →](docs/TOOLS.md)
+[Full tool documentation →](ai_researcher/agent_v3_claude/README.md#available-tools)
 
 ## 📊 Example Use Cases
 

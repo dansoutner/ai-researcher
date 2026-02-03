@@ -57,8 +57,6 @@ pytest tests/integration/
 
 #### Agent-specific tests
 ```bash
-pytest tests/agent_v1/
-pytest tests/agent_v2/
 pytest tests/agent_v3/
 ```
 
