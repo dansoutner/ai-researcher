@@ -13,7 +13,7 @@ from langchain_core.tools import StructuredTool, BaseTool
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from .servers import MCPServerConfig, get_server_by_name, get_all_mcp_servers
+from .servers import MCPServerConfig, MCPHttpServerConfig, get_server_by_name, get_all_mcp_servers
 
 
 async def load_mcp_tools(
@@ -90,15 +90,49 @@ async def load_mcp_tools_from_config(
     return await load_mcp_tools(config.to_stdio_params(), verbose=verbose)
 
 
+async def load_mcp_tools_from_http_config(
+    config: MCPHttpServerConfig,
+    verbose: bool = False
+) -> List[StructuredTool]:
+    """Load tools from an HTTP-based MCP server.
+
+    Note: This is a placeholder implementation. Full HTTP MCP support requires
+    the MCP library to provide HTTP client functionality or a custom HTTP client
+    implementation.
+
+    Args:
+        config: HTTP server configuration
+        verbose: Whether to print debug information
+
+    Returns:
+        List of LangChain StructuredTool instances
+
+    Raises:
+        NotImplementedError: HTTP MCP servers are not yet fully supported
+    """
+    if verbose:
+        print(f"Loading MCP tools from HTTP server {config.name}: {config.description}")
+        print(f"  URL: {config.url}")
+
+    # TODO: Implement HTTP MCP client support
+    # For now, we return an empty list with a warning
+    print(f"⚠ Warning: HTTP MCP server support is not yet implemented for {config.name}")
+    print(f"  The HuggingFace MCP server at {config.url} requires HTTP client support.")
+    print(f"  This feature will be added in a future update.")
+
+    return []
+
+
 async def get_mcp_tools(
-    servers: Union[List[str], List[MCPServerConfig]],
+    servers: Union[List[str], List[MCPServerConfig | MCPHttpServerConfig]],
     repo_root: Optional[str] = None,
     verbose: bool = False
 ) -> List[BaseTool]:
     """Get MCP tools from multiple servers.
 
     Args:
-        servers: List of server names (e.g., ['pexlib', 'arxiv']) or MCPServerConfig objects
+        servers: List of server names (e.g., ['pexlib', 'arxiv', 'huggingface'])
+                 or server config objects (MCPServerConfig or MCPHttpServerConfig)
         repo_root: Root directory of the repository
         verbose: Whether to print debug information
 
@@ -110,7 +144,7 @@ async def get_mcp_tools(
         from ai_researcher.mcp_integration import get_mcp_tools
 
         # Get tools by name
-        tools = await get_mcp_tools(['pexlib', 'arxiv'], verbose=True)
+        tools = await get_mcp_tools(['pexlib', 'arxiv', 'huggingface'], verbose=True)
 
         # Get tools from all available servers
         from ai_researcher.mcp_integration import get_all_mcp_servers
@@ -121,7 +155,7 @@ async def get_mcp_tools(
 
     for server in servers:
         try:
-            # Convert string names to MCPServerConfig
+            # Convert string names to server config
             if isinstance(server, str):
                 config = get_server_by_name(server, repo_root)
                 if config is None:
@@ -130,11 +164,18 @@ async def get_mcp_tools(
             else:
                 config = server
 
-            # Load tools from the server
-            tools = await load_mcp_tools_from_config(config, verbose=verbose)
+            # Load tools based on server type
+            if isinstance(config, MCPHttpServerConfig):
+                tools = await load_mcp_tools_from_http_config(config, verbose=verbose)
+            elif isinstance(config, MCPServerConfig):
+                tools = await load_mcp_tools_from_config(config, verbose=verbose)
+            else:
+                print(f"⚠ Warning: Unknown server config type for {getattr(config, 'name', 'unknown')}")
+                continue
+
             all_tools.extend(tools)
 
-            if verbose:
+            if verbose and tools:
                 print(f"✓ Loaded {len(tools)} tools from {config.name}")
 
         except Exception as e:

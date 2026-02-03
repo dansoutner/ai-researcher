@@ -61,7 +61,7 @@ from ai_researcher.ai_researcher_tools import (
 from .config import EXECUTOR_SYSTEM_PROMPT, get_current_datetime, FAST_EXECUTOR_PROMPT
 from .pruning import prune_messages_for_llm, summarize_tool_output
 from .state import AgentState, ExecutorOutput
-from .logging_utils import get_logger
+from .logging_utils import get_logger, log_llm_usage
 
 logger = get_logger(__name__)
 
@@ -287,6 +287,7 @@ def run_executor_turn(llm: BaseChatModel, state: AgentState) -> AgentState:
 
         # Get LLM response
         ai_message = llm_with_tools.invoke(safe_messages)
+        log_llm_usage(logger, "Executor", safe_messages, ai_message)
 
         # Check for tool calls
         tool_calls = getattr(ai_message, "tool_calls", None)

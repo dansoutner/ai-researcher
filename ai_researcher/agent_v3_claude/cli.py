@@ -2,9 +2,6 @@
 
 This wraps `agent_v3_claude.agent.run()` behind a small argparse interface so it
 can be exposed via a `pyproject.toml` script entry.
-
-Note: `agent_v3_claude.agent.require_llm()` is still a template and will raise
-until you implement an LLM provider.
 """
 
 from __future__ import annotations

@@ -8,8 +8,8 @@ Quick Start:
     ```python
     from ai_researcher.mcp_integration import get_mcp_tools, get_all_mcp_servers
 
-    # Get tools from specific servers
-    tools = await get_mcp_tools(['pexlib', 'arxiv'])
+    # Get tools from specific servers (including HTTP servers like HuggingFace)
+    tools = await get_mcp_tools(['pexlib', 'arxiv', 'huggingface'])
 
     # Get tools from all available servers
     all_tools = await get_mcp_tools(get_all_mcp_servers())
@@ -22,12 +22,15 @@ from .servers import (
     create_mcp_server_params,
     get_pexlib_server_params,
     get_arxiv_server_params,
+    get_huggingface_server_config,
     get_all_mcp_servers,
     MCPServerConfig,
+    MCPHttpServerConfig,
 )
 
 from .loader import (
     load_mcp_tools,
+    load_mcp_tools_from_http_config,
     get_mcp_tools,
     get_mcp_tools_by_name,
 )
@@ -37,10 +40,13 @@ __all__ = [
     "create_mcp_server_params",
     "get_pexlib_server_params",
     "get_arxiv_server_params",
+    "get_huggingface_server_config",
     "get_all_mcp_servers",
     "MCPServerConfig",
+    "MCPHttpServerConfig",
     # Tool loading
     "load_mcp_tools",
+    "load_mcp_tools_from_http_config",
     "get_mcp_tools",
     "get_mcp_tools_by_name",
 ]

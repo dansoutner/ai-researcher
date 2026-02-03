@@ -28,7 +28,7 @@ tools = await get_mcp_tools(['pexlib', 'arxiv'], verbose=True)
 ```python
 from ai_researcher.mcp_integration import get_mcp_tools, get_all_mcp_servers
 
-# Load tools from all available MCP servers
+# Load tools from all available MCP servers (including HuggingFace)
 all_tools = await get_mcp_tools(get_all_mcp_servers(), verbose=True)
 ```
 
@@ -114,6 +114,18 @@ Research paper search and retrieval from arXiv.
 tools = await get_mcp_tools(['arxiv'])
 ```
 
+### HuggingFace (HTTP Server)
+HuggingFace models, datasets, and spaces via HTTP MCP server.
+
+**Note:** HTTP MCP server support is currently in development. The configuration is in place, but full HTTP client implementation is pending.
+
+```python
+# Will be available once HTTP support is implemented
+tools = await get_mcp_tools(['huggingface'])
+```
+
+For more details, see [HUGGINGFACE_MCP_INTEGRATION.md](../../docs/HUGGINGFACE_MCP_INTEGRATION.md)
+
 ## Advanced Usage
 
 ### Custom Server Parameters
@@ -152,7 +164,9 @@ tools = await get_mcp_tools([custom_server, 'pexlib', 'arxiv'])
 
 ### Adding New MCP Servers
 
-To add a new MCP server:
+#### Adding a STDIO Server
+
+To add a new STDIO-based MCP server:
 
 1. Add a configuration function to `servers.py`:
 
@@ -171,10 +185,11 @@ def get_myserver_server_config(repo_root: Optional[str] = None) -> MCPServerConf
 2. Update `get_all_mcp_servers()` in `servers.py`:
 
 ```python
-def get_all_mcp_servers(repo_root: Optional[str] = None) -> List[MCPServerConfig]:
+def get_all_mcp_servers(repo_root: Optional[str] = None) -> List[MCPServerConfig | MCPHttpServerConfig]:
     return [
         get_pexlib_server_config(repo_root),
         get_arxiv_server_config(repo_root),
+        get_huggingface_server_config(),
         get_myserver_server_config(repo_root),  # Add your server
     ]
 ```
@@ -184,6 +199,34 @@ def get_all_mcp_servers(repo_root: Optional[str] = None) -> List[MCPServerConfig
 ```python
 tools = await get_mcp_tools(['myserver'])
 ```
+
+#### Adding an HTTP Server
+
+To add a new HTTP-based MCP server:
+
+1. Add a configuration function to `servers.py`:
+
+```python
+def get_myhttp_server_config() -> MCPHttpServerConfig:
+    """Get server configuration for my HTTP MCP server."""
+    return MCPHttpServerConfig(
+        name="myhttp",
+        url="https://api.example.com/mcp",
+        headers={"Authorization": "Bearer YOUR_TOKEN"},  # Optional
+        metadata={"version": "1.0"},  # Optional
+        description="My HTTP MCP server"
+    )
+```
+
+2. Add it to `get_all_mcp_servers()` (same as above)
+
+3. Use it:
+
+```python
+tools = await get_mcp_tools(['myhttp'])
+```
+
+**Note:** HTTP MCP server support requires implementation in `loader.py`. See `load_mcp_tools_from_http_config()` for the current placeholder.
 
 ## Module Structure
 
@@ -199,21 +242,27 @@ ai_researcher/mcp_integration/
 
 ### High-Level Functions
 
-- `get_mcp_tools(servers, repo_root=None, verbose=False)` - Load tools from multiple servers
+- `get_mcp_tools(servers, repo_root=None, verbose=False)` - Load tools from multiple servers (STDIO or HTTP)
 - `get_mcp_tools_by_name(server_names, repo_root=None, verbose=False)` - Load tools by server name
 - `get_all_mcp_servers(repo_root=None)` - Get all available server configurations
 
 ### Server Configuration
 
+#### STDIO Servers
 - `create_mcp_server_params(command, args, env=None, cwd=None)` - Create server parameters
 - `get_pexlib_server_params(repo_root=None)` - Get pexlib server parameters
 - `get_arxiv_server_params(repo_root=None)` - Get arxiv server parameters
-- `MCPServerConfig` - Dataclass for server configuration
+- `MCPServerConfig` - Dataclass for STDIO server configuration
+
+#### HTTP Servers
+- `get_huggingface_server_config()` - Get HuggingFace HTTP server configuration
+- `MCPHttpServerConfig` - Dataclass for HTTP server configuration
 
 ### Low-Level Functions
 
-- `load_mcp_tools(server_params, verbose=False)` - Load tools from a single server
+- `load_mcp_tools(server_params, verbose=False)` - Load tools from a single STDIO server
 - `load_mcp_tools_from_config(config, verbose=False)` - Load tools using MCPServerConfig
+- `load_mcp_tools_from_http_config(config, verbose=False)` - Load tools from HTTP server (placeholder)
 
 ## Testing
 

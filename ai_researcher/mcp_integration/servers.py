@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Literal, Any
 
 from mcp import StdioServerParameters
 
@@ -41,6 +41,29 @@ class MCPServerConfig:
             env=env,  # type: ignore
             cwd=self.cwd
         )
+
+
+@dataclass
+class MCPHttpServerConfig:
+    """Configuration for an HTTP-based MCP server.
+
+    Attributes:
+        name: Unique identifier for the server
+        url: The HTTP URL of the server
+        headers: Optional HTTP headers for authentication
+        metadata: Optional metadata about the server
+        description: Human-readable description of the server
+    """
+    name: str
+    url: str
+    headers: Optional[Dict[str, str]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    description: str = ""
+
+    @property
+    def type(self) -> Literal["http"]:
+        """Return the server type."""
+        return "http"
 
 
 def create_mcp_server_params(
@@ -195,30 +218,59 @@ def get_arxiv_server_config(repo_root: Optional[str] = None) -> MCPServerConfig:
     )
 
 
-def get_all_mcp_servers(repo_root: Optional[str] = None) -> List[MCPServerConfig]:
+def get_huggingface_server_config() -> MCPHttpServerConfig:
+    """Get server configuration for the HuggingFace MCP server.
+
+    The HuggingFace server provides tools for interacting with HuggingFace models,
+    datasets, and spaces via an HTTP-based MCP server.
+
+    Returns:
+        MCPHttpServerConfig for the HuggingFace server
+    """
+    return MCPHttpServerConfig(
+        name="huggingface",
+        url="https://huggingface.co/mcp?login",
+        metadata={
+            "registry": {
+                "api": {
+                    "baseUrl": "https://api.mcp.github.com",
+                    "version": "v0.1"
+                },
+                "mcpServer": {
+                    "name": "huggingface/hf-mcp-server",
+                    "version": "1.0.0"
+                }
+            }
+        },
+        description="HuggingFace model, dataset, and space tools via HTTP MCP server"
+    )
+
+
+def get_all_mcp_servers(repo_root: Optional[str] = None) -> List[MCPServerConfig | MCPHttpServerConfig]:
     """Get all available MCP server configurations.
 
     Args:
         repo_root: Root directory of the repository
 
     Returns:
-        List of all MCPServerConfig instances
+        List of all MCP server configurations (MCPServerConfig and MCPHttpServerConfig instances)
     """
     return [
         get_pexlib_server_config(repo_root),
         get_arxiv_server_config(repo_root),
+        get_huggingface_server_config(),
     ]
 
 
-def get_server_by_name(name: str, repo_root: Optional[str] = None) -> Optional[MCPServerConfig]:
+def get_server_by_name(name: str, repo_root: Optional[str] = None) -> Optional[MCPServerConfig | MCPHttpServerConfig]:
     """Get a specific MCP server configuration by name.
 
     Args:
-        name: Name of the server (e.g., "pexlib", "arxiv")
+        name: Name of the server (e.g., "pexlib", "arxiv", "huggingface")
         repo_root: Root directory of the repository
 
     Returns:
-        MCPServerConfig if found, None otherwise
+        MCPServerConfig or MCPHttpServerConfig if found, None otherwise
     """
     servers = {s.name: s for s in get_all_mcp_servers(repo_root)}
     return servers.get(name)

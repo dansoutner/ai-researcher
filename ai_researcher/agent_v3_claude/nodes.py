@@ -17,7 +17,7 @@ from .config import (
 )
 from .state import AgentState
 from .tools import run_executor_turn
-from .logging_utils import get_logger, format_section_header
+from .logging_utils import get_logger, format_section_header, log_llm_usage
 
 logger = get_logger(__name__)
 
@@ -126,7 +126,7 @@ def parse_reviewer_response(content: str) -> Dict[str, Any]:
         raise ValueError("Empty content - reviewer provided no response")
 
     # Try to parse as direct JSON first
-    print(f"[DEBUG] Trying to parse reviewer response as JSON: {content[:500]}")
+    logger.debug(f"Trying to parse reviewer response as JSON: {content[:500]}")
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
@@ -181,14 +181,14 @@ def planner_node(state: AgentState) -> AgentState:
     Returns:
         Updated state with new plan
     """
-    print(f"\n[DEBUG] === PLANNER NODE (iteration {state['iters']}) ===")
+    logger.info(f"=== PLANNER NODE (iteration {state['iters']}) ===")
 
     # CRITICAL: On first iteration, save working directory to memory
     # This ensures the executor can always recall it, preventing hallucinated paths
     if state['iters'] == 0:
         from ai_researcher.ai_researcher_tools import memory_set
         repo_root = state['repo_root']
-        print(f"[DEBUG] First iteration - saving working directory to memory: {repo_root}")
+        logger.debug(f"First iteration - saving working directory to memory: {repo_root}")
         memory_set.invoke({"repo_root": repo_root, "key": "working_directory", "value": repo_root})
 
     llm = require_llm()
@@ -208,6 +208,7 @@ def planner_node(state: AgentState) -> AgentState:
     ]
 
     ai_message = llm.invoke(messages)
+    log_llm_usage(logger, "Planner", messages, ai_message)
 
     # Parse plan from JSON response
     try:
@@ -224,12 +225,12 @@ def planner_node(state: AgentState) -> AgentState:
     state["messages"].append(ai_message)
 
     # Debug logging to show the plan to user
-    print("\n" + "=" * 60)
-    print("[DEBUG] PLAN GENERATED")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("PLAN GENERATED")
+    logger.info("=" * 60)
     for i, step in enumerate(plan, 1):
-        print(f"{i}. {step}")
-    print("=" * 60 + "\n")
+        logger.info(f"{i}. {step}")
+    logger.info("=" * 60 + "\n")
 
     return state
 
@@ -316,6 +317,7 @@ def reviewer_node(state: AgentState) -> AgentState:
     ]
 
     ai_message = llm.invoke(messages)
+    log_llm_usage(logger, "Reviewer", messages, ai_message)
 
     # Parse reviewer decision
     try:

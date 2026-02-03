@@ -337,15 +337,16 @@ def grep_search(
     case_sensitive: bool = False,
     max_results: int = 200,
 ) -> str:
-    """Search for text in files within a directory and its subdirectories.
+    """Search for text in files within a directory/file and its subdirectories.
 
     This tool searches for the exact text query in all files under the specified path.
+    If path is a file, searches only that file. If path is a directory, searches all files recursively.
     Returns matching lines with file names and line numbers.
 
     Args:
         repo_root: The root directory
         query: The text string to search for
-        path: Relative path to search within (default: current directory, searches all subdirectories)
+        path: Relative path to search within (can be a file or directory; default: current directory)
         case_sensitive: If True, search is case-sensitive; if False (default), case-insensitive
         max_results: Maximum number of matching lines to return (default: 200)
 
@@ -363,8 +364,8 @@ def grep_search(
     if not base.exists():
         return f"Error: Path '{path}' does not exist"
 
-    if not base.is_dir():
-        return f"Error: Path '{path}' is not a directory"
+    # Handle both files and directories
+    is_single_file = base.is_file()
 
     # Try using ripgrep (rg) first for better performance
     try:
@@ -394,7 +395,13 @@ def grep_search(
         search_query = query if case_sensitive else query.lower()
 
         try:
-            for f in sorted(base.rglob("*")):
+            # Handle single file vs directory
+            if is_single_file:
+                files_to_search = [base]
+            else:
+                files_to_search = sorted(base.rglob("*"))
+
+            for f in files_to_search:
                 if not f.is_file():
                     continue
 

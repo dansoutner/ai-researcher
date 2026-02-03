@@ -75,6 +75,28 @@ Complete guide to AI Researcher documentation.
   - Safety features
   - Usage examples
 
+#### MCP Integration
+- **[HUGGINGFACE_MCP_INTEGRATION.md](HUGGINGFACE_MCP_INTEGRATION.md)** - HuggingFace MCP server integration
+  - Configuration details
+  - Usage examples
+  - HTTP MCP server support
+  - Architecture changes
+
+- **[HUGGINGFACE_MCP_QUICK_REF.md](HUGGINGFACE_MCP_QUICK_REF.md)** - Quick reference
+  - Quick start examples
+  - API exports
+  - Usage patterns
+
+- **[HUGGINGFACE_MCP_INTEGRATION_SUMMARY.md](HUGGINGFACE_MCP_INTEGRATION_SUMMARY.md)** - Implementation summary
+  - All changes made
+  - New classes and functions
+  - Testing instructions
+
+- **[HUGGINGFACE_MCP_INTEGRATION_CHANGELOG.md](HUGGINGFACE_MCP_INTEGRATION_CHANGELOG.md)** - Complete changelog
+  - Files modified/created
+  - Detailed changes
+  - Statistics
+
 ## By Task
 
 ### I want to...
@@ -102,6 +124,9 @@ Complete guide to AI Researcher documentation.
 
 **Use MCP tools with any agent**
 → [MCP_ALL_AGENTS_GUIDE.md](MCP_ALL_AGENTS_GUIDE.md)
+
+**Integrate HuggingFace MCP server**
+→ [HUGGINGFACE_MCP_INTEGRATION.md](HUGGINGFACE_MCP_INTEGRATION.md) → [HUGGINGFACE_MCP_QUICK_REF.md](HUGGINGFACE_MCP_QUICK_REF.md)
 
 **Understand the refactoring**
 → [agent_v3_claude/REFACTORING_SUMMARY.md](agent_v3_claude/REFACTORING_SUMMARY.md)
@@ -142,8 +167,13 @@ readme.md (project overview)
 │   │   ├── EXECUTOR_WORKFLOW_DIAGRAM.md (visual)
 │   │   └── QUICK_REFERENCE.md (quick lookup)
 │   ├── ROUTING_FIX_SUMMARY.md (routing feature)
-│   └── AGENT_V3_TOOLS_INTEGRATION.md (tools feature)
+│   ├── AGENT_V3_TOOLS_INTEGRATION.md (tools feature)
+│   └── HUGGINGFACE_MCP_INTEGRATION.md (HuggingFace MCP)
+│       ├── HUGGINGFACE_MCP_QUICK_REF.md (quick reference)
+│       ├── HUGGINGFACE_MCP_INTEGRATION_SUMMARY.md (summary)
+│       └── HUGGINGFACE_MCP_INTEGRATION_CHANGELOG.md (changelog)
 │
+├── MCP_ALL_AGENTS_GUIDE.md (MCP usage guide)
 └── mcp_servers/arxiv-mcp-server/README.md (MCP server)
 ```
 
